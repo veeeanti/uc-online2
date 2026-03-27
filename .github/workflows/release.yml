@@ -1,0 +1,77 @@
+name: Build and Release DLLs
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build and Release
+    runs-on: windows-2022
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build x86 version (steam_api.dll)
+        run: msbuild uc_online2.vcxproj -p:Configuration=Release -p:Platform=Win32 -m
+
+      - name: Build x64 version (steam_api64.dll)
+        run: msbuild uc_online2.vcxproj -p:Configuration=Release -p:Platform=x64 -m
+
+      - name: Verify build outputs
+        shell: pwsh
+        run: |
+          $files = @(
+            "build/x86/steam_api.dll",
+            "build/x64/steam_api64.dll"
+          )
+
+          foreach ($file in $files) {
+            if (-not (Test-Path $file)) {
+              throw "Missing expected build output: $file"
+            }
+          }
+
+      - name: Package release zip
+        shell: pwsh
+        run: |
+          $packageRoot = "dist/uc-online2-${{ github.ref_name }}"
+          $archivePath = "$packageRoot.zip"
+
+          New-Item -ItemType Directory -Path "$packageRoot/x86" -Force | Out-Null
+          New-Item -ItemType Directory -Path "$packageRoot/x64" -Force | Out-Null
+
+          Copy-Item "build/x86/steam_api.dll" "$packageRoot/x86/steam_api.dll"
+          Copy-Item "build/x64/steam_api64.dll" "$packageRoot/x64/steam_api64.dll"
+
+          if (Test-Path $archivePath) {
+            Remove-Item $archivePath -Force
+          }
+
+          Compress-Archive -Path $packageRoot -DestinationPath $archivePath
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: uc-online2-${{ github.ref_name }}
+          path: dist/uc-online2-${{ github.ref_name }}.zip
+          if-no-files-found: error
+
+      - name: Publish release assets
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: dist/uc-online2-${{ github.ref_name }}.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true

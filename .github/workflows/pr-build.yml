@@ -1,0 +1,36 @@
+name: Pull Request Build
+
+on:
+  pull_request:
+
+jobs:
+  build:
+    name: Build DLLs
+    runs-on: windows-2022
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Win32 DLL
+        run: msbuild uc_online2.vcxproj -p:Configuration=Release -p:Platform=Win32 -m
+
+      - name: Build x64 DLL
+        run: msbuild uc_online2.vcxproj -p:Configuration=Release -p:Platform=x64 -m
+
+      - name: Verify build outputs
+        shell: pwsh
+        run: |
+          $files = @(
+            "build/x86/steam_api.dll",
+            "build/x64/steam_api64.dll"
+          )
+
+          foreach ($file in $files) {
+            if (-not (Test-Path $file)) {
+              throw "Missing expected build output: $file"
+            }
+          }
