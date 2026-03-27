@@ -104,6 +104,12 @@ S_API ESteamAPIInitResult S_CALLTYPE SteamInternal_GameServer_Init_V2(uint32 unI
 	return k_ESteamAPIInitResult_FailedGeneric;
 }
 
+S_API bool S_CALLTYPE SteamInternal_GameServer_Init(uint32 unIP, uint16 usPort, uint16 usGamePort, uint16 usQueryPort, EServerMode eMode, const char* pszVersion)
+{
+	(void)usPort;
+	return SteamInternal_GameServer_Init_V2(unIP, usGamePort, usQueryPort, eMode, pszVersion, nullptr, nullptr) == k_ESteamAPIInitResult_OK;
+}
+
 S_API bool S_CALLTYPE SteamGameServer_InitSafe(uint32 unIP, uint16 usPort, uint16 usGamePort, uint16 usQueryPort, EServerMode eMode, const char* pszVersion)
 {
 	UCOLOG("[UCOnline2] SteamGameServer_InitSafe\r\n");

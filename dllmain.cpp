@@ -11,6 +11,7 @@
 #include "include/sdk/steamclientpublic.h"
 #include "include/sdk/steam_gameserver.h"
 
+#include "include/registfuncs.h"
 #include "include/callback_dispatcher.h"
 #include "include/globals.h"
 #include "include/dll_loader.h"

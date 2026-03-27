@@ -110,44 +110,65 @@ S_API const char* S_CALLTYPE SteamAPI_GetSteamInstallPath()
 	if (g_bHaveInstallPath)
 		return g_InstallPath;
 
-	HMODULE hSteamClient = GetModuleHandleA("steamclient.dll");
-	if (!hSteamClient) hSteamClient = GetModuleHandleA("steamclient64.dll");
+	DWORD ActiveProcessPID = 0;
+	LSTATUS GetPID = GetRegistryDWORD("Software\\Valve\\Steam\\ActiveProcess", "pid", ActiveProcessPID);
 
-	if (hSteamClient)
+	if (GetPID == ERROR_SUCCESS && ActiveProcessPID != 0)
 	{
-		char path[MAX_PATH] = { 0 };
-		if (GetModuleFileNameA(hSteamClient, path, MAX_PATH) != 0)
+		HANDLE hPIDProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, ActiveProcessPID);
+
+		if (hPIDProcess != nullptr)
 		{
-			if (PathRemoveFileSpecA(path))
+			DWORD ExitCode = 0;
+			BOOL bExitCode = GetExitCodeProcess(hPIDProcess, &ExitCode);
+
+			CloseHandle(hPIDProcess);
+
+			if (bExitCode == TRUE && ExitCode == 259)
 			{
-				_snprintf_s(g_InstallPath, MAX_PATH, _TRUNCATE, "%s", path);
-				g_bHaveInstallPath = true;
-				UCOLOG("[UCOnline2] Install path: %s", g_InstallPath);
-				return g_InstallPath;
+				LSTATUS GetDllString = ERROR_SUCCESS;
+
+				#if defined(_M_IX86)
+					GetDllString = GetRegistryString("Software\\Valve\\Steam\\ActiveProcess", "SteamClientDll", g_InstallPath, MAX_PATH);
+				#elif defined(_M_AMD64)
+					GetDllString = GetRegistryString("Software\\Valve\\Steam\\ActiveProcess", "SteamClientDll64", g_InstallPath, MAX_PATH);
+				#endif
+
+				if (GetDllString == ERROR_SUCCESS)
+				{
+					BOOL FixPath = PathRemoveFileSpecA(g_InstallPath);
+
+					if (FixPath == TRUE)
+					{
+						g_bHaveInstallPath = true;
+
+						UCOLOG("[UCOnline2] Steam Install Path --> %s\r\n", g_InstallPath);
+
+						return g_InstallPath;
+					}
+					else
+					{
+						UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] PathRemoveFileSpecA Failed (SteamAPI_GetSteamInstallPath)!\r\n");
+					}
+				}
+				else
+				{
+					UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] Unable to get steamclient(64).dll path (SteamAPI_GetSteamInstallPath)!\r\n");
+				}
 			}
+			else
+			{
+				UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] GetExitCodeProcess Failed (SteamAPI_GetSteamInstallPath)!\r\n");
+			}
+		}
+		else
+		{
+			UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] OpenProcess Failed (SteamAPI_GetSteamInstallPath)!\r\n");
 		}
 	}
-
-	char path[MAX_PATH] = { 0 };
-	if (GetModuleFileNameA(nullptr, path, MAX_PATH) != 0)
+	else
 	{
-		if (PathRemoveFileSpecA(path))
-		{
-			char testDll[MAX_PATH] = { 0 };
-			#if defined(_M_IX86)
-				_snprintf_s(testDll, MAX_PATH, _TRUNCATE, "%s\\steamclient.dll", path);
-			#elif defined(_M_AMD64)
-				_snprintf_s(testDll, MAX_PATH, _TRUNCATE, "%s\\steamclient64.dll", path);
-			#endif
-
-			if (GetFileAttributesA(testDll) != INVALID_FILE_ATTRIBUTES)
-			{
-				_snprintf_s(g_InstallPath, MAX_PATH, _TRUNCATE, "%s", path);
-				g_bHaveInstallPath = true;
-				UCOLOG("[UCOnline2] Install path: %s", g_InstallPath);
-				return g_InstallPath;
-			}
-		}
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] Unable to get the PID of the Steam process (SteamAPI_GetSteamInstallPath)!\r\n");
 	}
 
 	return "UCOnline2_InvalidPath";
@@ -334,13 +355,38 @@ S_API bool S_CALLTYPE SteamAPI_IsSteamRunning()
 {
 	UCOLOG("[UCOnline2] SteamAPI_IsSteamRunning");
 
-	#if defined(_M_IX86)
-		if (GetModuleHandleA("steamclient.dll")) return true;
-	#elif defined(_M_AMD64)
-		if (GetModuleHandleA("steamclient64.dll")) return true;
-	#endif
+	DWORD ActiveProcessPID = 0;
+	LSTATUS GetPID = GetRegistryDWORD("Software\\Valve\\Steam\\ActiveProcess", "pid", ActiveProcessPID);
 
-	if (FindWindowA("Valve001", nullptr)) return true;
+	if (GetPID == ERROR_SUCCESS && ActiveProcessPID != 0)
+	{
+		HANDLE hPIDProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, ActiveProcessPID);
+
+		if (hPIDProcess != nullptr)
+		{
+			DWORD ExitCode = 0;
+			BOOL bExitCode = GetExitCodeProcess(hPIDProcess, &ExitCode);
+
+			CloseHandle(hPIDProcess);
+
+			if (bExitCode == TRUE && ExitCode == 259)
+			{
+				return true;
+			}
+			else
+			{
+				UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] GetExitCodeProcess Failed (SteamAPI_IsSteamRunning)!\r\n");
+			}
+		}
+		else
+		{
+			UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] OpenProcess Failed (SteamAPI_IsSteamRunning)!\r\n");
+		}
+	}
+	else
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] Unable to get the PID of the Steam process (SteamAPI_IsSteamRunning)!\r\n");
+	}
 
 	return false;
 }
