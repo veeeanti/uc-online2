@@ -39,3 +39,11 @@
 
 # debug information files
 *.dwo
+
+# Folders created by compiler
+x64/
+x86/
+Release/
+Debug/
+.vs/
+
