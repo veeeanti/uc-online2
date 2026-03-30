@@ -17,12 +17,12 @@
 #include "include/dll_loader.h"
 #include "include/dump_handler.h"
 
+#include "include/api/api_callbacks.h"
 #include "include/api/api_client.h"
 #include "include/api/api_interfaces.h"
 #include "include/api/api_interfaces_v.h"
 #include "include/api/api_gameserver.h"
 #include "include/api/api_breakpad.h"
-#include "include/api/api_callbacks.h"
 #include "include/api/api_shutdown.h"
 #include "include/api/api_factory.h"
 #include "include/api/api_flat.h"
