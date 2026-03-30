@@ -23,6 +23,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 For more information, please refer to <https://unlicense.org>
 
+=============================
 
 __†__ I'm unsure of what a "commercial" purpose would be, but if it's used by another site other than union-crax.xyz for their games to allow for online connectivity, simply ask first - my answer would be likely yes in most cases, I just would like to know beforehand where this would be used and distributed. 
 
