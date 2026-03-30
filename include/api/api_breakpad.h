@@ -139,7 +139,7 @@ S_API void S_CALLTYPE SteamAPI_UseBreakpadCrashHandler(const char* ver, const ch
 	_snprintf_s(g_BreakpadTimestamp, sizeof(g_BreakpadTimestamp), _TRUNCATE, "%04d%02d%02d%02d%02d%02d",
 		st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
 #else
-	time_t now = time(nullptr);
+	time_t now = std::time(nullptr);
 	struct tm tm_buf;
 	localtime_r(&now, &tm_buf);
 	snprintf(g_BreakpadTimestamp, sizeof(g_BreakpadTimestamp), "%04d%02d%02d%02d%02d%02d",

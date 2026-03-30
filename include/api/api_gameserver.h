@@ -154,10 +154,16 @@ S_API uint64 S_CALLTYPE SteamGameServer_GetSteamID()
 	UCOLOG("[UCOnline2] SteamGameServer_GetSteamID\r\n");
 
 	if (g_ServerMode == eServerModeNoAuthentication)
-		return *(uint64*)&k_steamIDLanModeGS;
+	{
+		CSteamID sid = k_steamIDLanModeGS;
+		return *(uint64*)&sid;
+	}
 
 	if (!g_pGameServer)
-		return *(uint64*)&k_steamIDNotInitYetGS;
+	{
+		CSteamID sid = k_steamIDNotInitYetGS;
+		return *(uint64*)&sid;
+	}
 
 	return g_pGameServer->GetSteamID().ConvertToUint64();
 }

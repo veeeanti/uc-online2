@@ -136,11 +136,17 @@ typedef void* FARPROC;
 #endif
 
 #ifndef _snprintf_s
-// Overloaded macro: 4 args = sprintf, 5 args with _TRUNCATE = snprintf with truncation
-#define _snprintf_s_4(buf, size, count, fmt) snprintf(buf, size, fmt)
-#define _snprintf_s_5(buf, size, count, flag, fmt) snprintf(buf, size, fmt)
-#define _snprintf_s_get_macro(_1, _2, _3, _4, _5, NAME, ...) NAME
-#define _snprintf_s(...) _snprintf_s_get_macro(__VA_ARGS__, _snprintf_s_5, _snprintf_s_4)(__VA_ARGS__)
+// Inline function overloads that properly forward variadic format args
+template<typename... Args>
+inline int _snprintf_s_impl(char* buf, size_t size, int count, const char* fmt, Args... args) {
+    return snprintf(buf, size, fmt, args...);
+}
+template<typename... Args>
+inline int _snprintf_s_impl(char* buf, size_t size, int count, int truncate, const char* fmt, Args... args) {
+    return snprintf(buf, size, fmt, args...);
+}
+// Use a simple inline wrapper; callers use _snprintf_s(buf, size, _TRUNCATE, fmt, ...)
+#define _snprintf_s(...) _snprintf_s_impl(__VA_ARGS__)
 #endif
 
 #ifndef _TRUNCATE
@@ -200,8 +206,8 @@ inline BOOL PathAppendA(char* path, const char* more) {
     if (!path || !more) return FALSE;
     size_t len = strlen(path);
     if (len > 0 && path[len - 1] != PLAT_SEP) {
-        size_t remaining = MAX_PATH - len - 1;
-        strncat(path, &PLAT_SEP, 1);
+        char sep = PLAT_SEP;
+        strncat(path, &sep, 1);
     }
     strncat(path, more, MAX_PATH - strlen(path) - 1);
     return TRUE;

@@ -1,5 +1,6 @@
 build/
 build32/
+build64/
 .vs/
 CMakeFiles/
 CMakeCache.txt

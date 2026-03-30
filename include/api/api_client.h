@@ -1,4 +1,4 @@
-static bool s_bDispatcherInited = false;
+bool s_bDispatcherInited = false;
 CCallbackDispatcher* GetDispatcher();
 
 uint32 CountRegisteredCallbacks(int iCallbackId)
