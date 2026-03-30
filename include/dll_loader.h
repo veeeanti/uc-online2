@@ -218,10 +218,9 @@ class CDLLLoader
 private:
 	std::vector<PLAT_MODULE_T> m_Modules;
 	char m_IniPath[MAX_PATH];
-	uint32 m_AppId;
 
 public:
-	CDLLLoader() : m_AppId(480) { m_IniPath[0] = '\0'; }
+	CDLLLoader() { m_IniPath[0] = '\0'; }
 	~CDLLLoader() { UnloadAll(); }
 
 	void ReadConfig()

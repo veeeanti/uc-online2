@@ -131,8 +131,16 @@ set_target_properties(${TARGET_NAME} PROPERTIES
 
 # Strip release builds on Linux/macOS
 if(UNIX AND CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-        COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${TARGET_NAME}>
-        COMMENT "Stripping ${TARGET_NAME}"
-    )
+    if(APPLE)
+        # -x strips only local symbols; avoids indirect symbol table errors on macOS dylibs
+        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            COMMAND ${CMAKE_STRIP} -x $<TARGET_FILE:${TARGET_NAME}>
+            COMMENT "Stripping ${TARGET_NAME}"
+        )
+    else()
+        add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+            COMMAND ${CMAKE_STRIP} $<TARGET_FILE:${TARGET_NAME}>
+            COMMENT "Stripping ${TARGET_NAME}"
+        )
+    endif()
 endif()
