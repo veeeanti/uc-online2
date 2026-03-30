@@ -2,7 +2,7 @@ This is free and unencumbered software released into the public domain.
 
 Anyone is free to copy, modify, publish, use, compile, ~~sell~~ [ABSOLUTELY __NO__ SELLING!!!]
 , or distribute this software, either in source code form or as a compiled
-binary, for any purpose, commercial__†__ or non-commercial, and by any
+binary, for any purpose, commercial __†__ or non-commercial, and by any
 means.
 
 In jurisdictions that recognize copyright laws, the author or authors
