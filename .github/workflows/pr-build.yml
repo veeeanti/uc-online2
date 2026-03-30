@@ -41,18 +41,28 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Build
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --config Release
+      - name: Install 32-bit toolchain
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
 
-      - name: Verify output
+      - name: Build 64-bit
         run: |
-          if [ ! -f build/x64/libsteam_api64.so ]; then
-            echo "::error::Missing build output"
-            exit 1
-          fi
-          echo "Found: build/x64/libsteam_api64.so ($(stat --format=%s build/x64/libsteam_api64.so) bytes)"
+          cmake -B build64 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build64 --config Release
+
+      - name: Build 32-bit
+        run: |
+          cmake -B build32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32
+          cmake --build build32 --config Release
+
+      - name: Verify outputs
+        run: |
+          for file in build64/x64/libsteam_api64.so build32/x86/libsteam_api.so; do
+            if [ ! -f "$file" ]; then
+              echo "::error::Missing: $file"
+              exit 1
+            fi
+            echo "Found: $file"
+          done
 
   build-macos:
     name: Build (macOS)

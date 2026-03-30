@@ -49,15 +49,24 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v4
 
-      - name: Build
+      - name: Install 32-bit toolchain
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
+
+      - name: Build 64-bit
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --config Release
+          cmake -B build64 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build64 --config Release
+
+      - name: Build 32-bit
+        run: |
+          cmake -B build32 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS=-m32 -DCMAKE_C_FLAGS=-m32
+          cmake --build build32 --config Release
 
       - name: Package outputs
         run: |
-          mkdir -p dist/linux/x64
-          cp build/x64/libsteam_api64.so dist/linux/x64/
+          mkdir -p dist/linux/x64 dist/linux/x86
+          cp build64/x64/libsteam_api64.so dist/linux/x64/
+          cp build32/x86/libsteam_api.so dist/linux/x86/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
