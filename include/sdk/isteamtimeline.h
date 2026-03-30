@@ -226,8 +226,10 @@ public:
 #define STEAMTIMELINE_INTERFACE_VERSION "STEAMTIMELINE_INTERFACE_V004"
 
 // Global interface accessor
-//inline ISteamTimeline *SteamTimeline();
-//STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamTimeline *, SteamTimeline, STEAMTIMELINE_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamTimeline *SteamTimeline();
+STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamTimeline *, SteamTimeline, STEAMTIMELINE_INTERFACE_VERSION );
+#endif
 
 
 //-----------------------------------------------------------------------------

@@ -230,7 +230,7 @@ void* InitSteamClient(HMODULE* phMod, bool bLocal, const char* iface)
 
 	if (g_pfnCreateInterface)
 	{
-		g_pSteamClientSafe = (ISteamClient*)g_pfnCreateInterface("SteamClient021", nullptr);
+		g_pSteamClientSafe = (ISteamClient*)g_pfnCreateInterface("SteamClient023", nullptr);
 		g_pfnReleaseThreadLocal = (Fn_ReleaseThreadLocal)GetProcAddress(*phMod, "Steam_ReleaseThreadLocalMemory");
 		g_CtxCounter++;
 

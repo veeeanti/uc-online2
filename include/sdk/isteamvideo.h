@@ -1,4 +1,4 @@
-//====== Copyright © 1996-2014 Valve Corporation, All rights reserved. =======
+//====== Copyright ï¿½ 1996-2014 Valve Corporation, All rights reserved. =======
 //
 // Purpose: interface to Steam Video
 //
@@ -38,13 +38,17 @@ public:
 	STEAM_CALL_BACK( GetOPFSettingsResult_t )
 	virtual void GetOPFSettings( AppId_t unVideoAppID ) = 0;
 	virtual bool GetOPFStringForApp( AppId_t unVideoAppID, char *pchBuffer, int32 *pnBufferSize ) = 0;
+
+
 };
 
 #define STEAMVIDEO_INTERFACE_VERSION "STEAMVIDEO_INTERFACE_V007"
 
 // Global interface accessor
-//inline ISteamVideo *SteamVideo();
-//STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamVideo *, SteamVideo, STEAMVIDEO_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamVideo *SteamVideo();
+STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamVideo *, SteamVideo, STEAMVIDEO_INTERFACE_VERSION );
+#endif
 
 STEAM_CALLBACK_BEGIN( GetVideoURLResult_t, k_iSteamVideoCallbacks + 11 )
 	STEAM_CALLBACK_MEMBER( 0, EResult, m_eResult )
@@ -58,13 +62,13 @@ STEAM_CALLBACK_BEGIN( GetOPFSettingsResult_t, k_iSteamVideoCallbacks + 24 )
 	STEAM_CALLBACK_MEMBER( 1, AppId_t, m_unVideoAppID )
 STEAM_CALLBACK_END(2)
 
-STEAM_CALLBACK_BEGIN(BroadcastUploadStart_t, k_iSteamVideoCallbacks + 4)
-STEAM_CALLBACK_MEMBER(0, bool, m_bIsRTMP)
-STEAM_CALLBACK_END(1)
+STEAM_CALLBACK_BEGIN( BroadcastUploadStart_t, k_iSteamVideoCallbacks + 4 )
+	STEAM_CALLBACK_MEMBER( 0, bool, m_bIsRTMP )
+STEAM_CALLBACK_END( 1 )
 
-STEAM_CALLBACK_BEGIN(BroadcastUploadStop_t, k_iSteamVideoCallbacks + 5)
-STEAM_CALLBACK_MEMBER(0, EBroadcastUploadResult, m_eResult)
-STEAM_CALLBACK_END(1)
+STEAM_CALLBACK_BEGIN( BroadcastUploadStop_t, k_iSteamVideoCallbacks + 5 )
+	STEAM_CALLBACK_MEMBER( 0, EBroadcastUploadResult, m_eResult )
+STEAM_CALLBACK_END( 1 )
 
 #pragma pack( pop )
 

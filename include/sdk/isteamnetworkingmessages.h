@@ -122,7 +122,7 @@ public:
 	/// you do not need the corresponding details.  Note that sessions time out after a while,
 	/// so if a connection fails, or SendMessageToUser returns k_EResultNoConnection, you cannot wait
 	/// indefinitely to obtain the reason for failure.
-	virtual ESteamNetworkingConnectionState GetSessionConnectionInfo(const SteamNetworkingIdentity& identityRemote, SteamNetConnectionInfo_t* pConnectionInfo, SteamNetConnectionRealTimeStatus_t* pQuickStatus) = 0;
+	virtual ESteamNetworkingConnectionState GetSessionConnectionInfo( const SteamNetworkingIdentity &identityRemote, SteamNetConnectionInfo_t *pConnectionInfo, SteamNetConnectionRealTimeStatus_t *pQuickStatus ) = 0;
 };
 #define STEAMNETWORKINGMESSAGES_INTERFACE_VERSION "SteamNetworkingMessages002"
 
@@ -167,14 +167,14 @@ struct SteamNetworkingMessagesSessionFailed_t
 // Using standalone lib
 #ifdef STEAMNETWORKINGSOCKETS_STANDALONELIB
 
-static_assert(STEAMNETWORKINGMESSAGES_INTERFACE_VERSION[25] == '2', "Version mismatch");
+	static_assert( STEAMNETWORKINGMESSAGES_INTERFACE_VERSION[25] == '2', "Version mismatch" );
 
-STEAMNETWORKINGSOCKETS_INTERFACE ISteamNetworkingMessages* SteamNetworkingMessages_LibV2();
-inline ISteamNetworkingMessages* SteamNetworkingMessages_Lib() { return SteamNetworkingMessages_LibV2(); }
+	STEAMNETWORKINGSOCKETS_INTERFACE ISteamNetworkingMessages *SteamNetworkingMessages_LibV2();
+	inline ISteamNetworkingMessages *SteamNetworkingMessages_Lib() { return SteamNetworkingMessages_LibV2(); }
 
-// If running in context of steam, we also define a gameserver instance.
-STEAMNETWORKINGSOCKETS_INTERFACE ISteamNetworkingMessages* SteamGameServerNetworkingMessages_LibV2();
-inline ISteamNetworkingMessages* SteamGameServerNetworkingMessages_Lib() { return SteamGameServerNetworkingMessages_LibV2(); }
+	// If running in context of steam, we also define a gameserver instance.
+	STEAMNETWORKINGSOCKETS_INTERFACE ISteamNetworkingMessages *SteamGameServerNetworkingMessages_LibV2();
+	inline ISteamNetworkingMessages *SteamGameServerNetworkingMessages_Lib() { return SteamGameServerNetworkingMessages_LibV2(); }
 
 #ifndef STEAMNETWORKINGSOCKETS_STEAMAPI
 inline ISteamNetworkingMessages* SteamNetworkingMessages() { return SteamNetworkingMessages_LibV2(); }
@@ -184,15 +184,17 @@ inline ISteamNetworkingMessages* SteamGameServerNetworkingMessages() { return St
 
 // Using Steamworks SDK
 #ifdef STEAMNETWORKINGSOCKETS_STEAMAPI
+#ifndef STEAM_API_EXPORTS
 
 	// Steamworks SDK
 	STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamNetworkingMessages *, SteamNetworkingMessages_SteamAPI, STEAMNETWORKINGMESSAGES_INTERFACE_VERSION );
 	STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamNetworkingMessages *, SteamGameServerNetworkingMessages_SteamAPI, STEAMNETWORKINGMESSAGES_INTERFACE_VERSION );
 
 	#ifndef STEAMNETWORKINGSOCKETS_STANDALONELIB
-		//inline ISteamNetworkingMessages *SteamNetworkingMessages() { return SteamNetworkingMessages_SteamAPI(); }
-		//inline ISteamNetworkingMessages *SteamGameServerNetworkingMessages() { return SteamGameServerNetworkingMessages_SteamAPI(); }
+		inline ISteamNetworkingMessages *SteamNetworkingMessages() { return SteamNetworkingMessages_SteamAPI(); }
+		inline ISteamNetworkingMessages *SteamGameServerNetworkingMessages() { return SteamGameServerNetworkingMessages_SteamAPI(); }
 	#endif
+#endif
 #endif
 
 #endif // ISTEAMNETWORKINGMESSAGES

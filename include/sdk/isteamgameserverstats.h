@@ -1,4 +1,4 @@
-//====== Copyright © Valve Corporation, All rights reserved. =======
+//====== Copyright ï¿½ Valve Corporation, All rights reserved. =======
 //
 // Purpose: interface for game servers to steam stats and achievements
 //
@@ -63,8 +63,10 @@ public:
 #define STEAMGAMESERVERSTATS_INTERFACE_VERSION "SteamGameServerStats001"
 
 // Global accessor
-//inline ISteamGameServerStats *SteamGameServerStats();
-//STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamGameServerStats *, SteamGameServerStats, STEAMGAMESERVERSTATS_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamGameServerStats *SteamGameServerStats();
+STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamGameServerStats *, SteamGameServerStats, STEAMGAMESERVERSTATS_INTERFACE_VERSION );
+#endif
 
 
 // callbacks

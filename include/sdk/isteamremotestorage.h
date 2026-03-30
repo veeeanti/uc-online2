@@ -102,7 +102,7 @@ enum EWorkshopFileType
 	k_EWorkshopFileTypeSteamworksAccessInvite = 13,		// internal
 	k_EWorkshopFileTypeSteamVideo			  = 14,		// Steam video
 	k_EWorkshopFileTypeGameManagedItem		  = 15,		// managed completely by the game, not the user, and not shown on the web
-	k_EWorkshopFileTypeClip                   = 16,		// internal
+	k_EWorkshopFileTypeClip					  = 16,		// internal
 
 	// Update k_EWorkshopFileTypeMax if you add values.
 	k_EWorkshopFileTypeMax = 17
@@ -171,13 +171,14 @@ enum ERemoteStorageLocalFileChange
 enum ERemoteStorageFilePathType
 {
 	k_ERemoteStorageFilePathType_Invalid = 0,
-
+	
 	// The file is directly accessed by the game and this is the full path
 	k_ERemoteStorageFilePathType_Absolute = 1,
 
 	// The file is accessed via the ISteamRemoteStorage API and this is the filename
 	k_ERemoteStorageFilePathType_APIFilename = 2,
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Functions for accessing, reading and writing files stored remotely 
@@ -260,24 +261,6 @@ class ISteamRemoteStorage
 		virtual int32	GetCachedUGCCount() = 0;
 		virtual	UGCHandle_t GetCachedUGCHandle( int32 iCachedContent ) = 0;
 
-		// The following functions are only necessary on the Playstation 3. On PC & Mac, the Steam client will handle these operations for you
-		// On Playstation 3, the game controls which files are stored in the cloud, via FilePersist, FileFetch, and FileForget.
-			
-#if defined(_SERVER)
-		// Connect to Steam and get a list of files in the Cloud - results in a RemoteStorageAppSyncStatusCheck_t callback
-		virtual void GetFileListFromServer() = 0;
-		// Indicate this file should be downloaded in the next sync
-		virtual bool FileFetch( const char *pchFile ) = 0;
-		// Indicate this file should be persisted in the next sync
-		virtual bool FilePersist( const char *pchFile ) = 0;
-		// Pull any requested files down from the Cloud - results in a RemoteStorageAppSyncedClient_t callback
-		virtual bool SynchronizeToClient() = 0;
-		// Upload any requested files to the Cloud - results in a RemoteStorageAppSyncedServer_t callback
-		virtual bool SynchronizeToServer() = 0;
-		// Reset any fetch/persist/etc requests
-		virtual bool ResetFileRequestState() = 0;
-#endif
-
 		// publishing UGC
 		STEAM_CALL_RESULT( RemoteStoragePublishFileProgress_t )
 		virtual SteamAPICall_t	PublishWorkshopFile( const char *pchFile, const char *pchPreviewFile, AppId_t nConsumerAppId, const char *pchTitle, const char *pchDescription, ERemoteStoragePublishedFileVisibility eVisibility, SteamParamStringArray_t *pTags, EWorkshopFileType eWorkshopFileType ) = 0;
@@ -330,7 +313,7 @@ class ISteamRemoteStorage
 
 		// Cloud dynamic state change notification
 		virtual int32 GetLocalFileChangeCount() = 0;
-		virtual const char* GetLocalFileChange(int iFile, ERemoteStorageLocalFileChange* pEChangeType, ERemoteStorageFilePathType* pEFilePathType) = 0;
+		virtual const char *GetLocalFileChange( int iFile, ERemoteStorageLocalFileChange *pEChangeType, ERemoteStorageFilePathType *pEFilePathType ) = 0;
 
 		// Indicate to Steam the beginning / end of a set of local file
 		// operations - for example, writing a game save that requires updating two files.
@@ -341,8 +324,10 @@ class ISteamRemoteStorage
 #define STEAMREMOTESTORAGE_INTERFACE_VERSION "STEAMREMOTESTORAGE_INTERFACE_VERSION016"
 
 // Global interface accessor
-//inline ISteamRemoteStorage *SteamRemoteStorage();
-//STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamRemoteStorage *, SteamRemoteStorage, STEAMREMOTESTORAGE_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamRemoteStorage *SteamRemoteStorage();
+STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamRemoteStorage *, SteamRemoteStorage, STEAMREMOTESTORAGE_INTERFACE_VERSION );
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )
@@ -353,58 +338,8 @@ class ISteamRemoteStorage
 #error steam_api_common.h should define VALVE_CALLBACK_PACK_xxx
 #endif 
 
-//-----------------------------------------------------------------------------
-// Purpose: sent when the local file cache is fully synced with the server for an app
-//          That means that an application can be started and has all latest files
-//-----------------------------------------------------------------------------
-struct RemoteStorageAppSyncedClient_t
-{
-	enum { k_iCallback = k_iSteamRemoteStorageCallbacks + 1 };
-	AppId_t m_nAppID;
-	EResult m_eResult;
-	int m_unNumDownloads;
-};
 
-//-----------------------------------------------------------------------------
-// Purpose: sent when the server is fully synced with the local file cache for an app
-//          That means that we can shutdown Steam and our data is stored on the server
-//-----------------------------------------------------------------------------
-struct RemoteStorageAppSyncedServer_t
-{
-	enum { k_iCallback = k_iSteamRemoteStorageCallbacks + 2 };
-	AppId_t m_nAppID;
-	EResult m_eResult;
-	int m_unNumUploads;
-};
 
-//-----------------------------------------------------------------------------
-// Purpose: Status of up and downloads during a sync session
-//       
-//-----------------------------------------------------------------------------
-struct RemoteStorageAppSyncProgress_t
-{
-	enum { k_iCallback = k_iSteamRemoteStorageCallbacks + 3 };
-	char m_rgchCurrentFile[k_cchFilenameMax];				// Current file being transferred
-	AppId_t m_nAppID;							// App this info relates to
-	uint32 m_uBytesTransferredThisChunk;		// Bytes transferred this chunk
-	double m_dAppPercentComplete;				// Percent complete that this app's transfers are
-	bool m_bUploading;							// if false, downloading
-};
-
-//
-// IMPORTANT! k_iSteamRemoteStorageCallbacks 1 through 6 are used, see iclientremotestorage.h
-//
-
-//-----------------------------------------------------------------------------
-// Purpose: Sent after we've determined the list of files that are out of sync
-//          with the server.
-//-----------------------------------------------------------------------------
-struct RemoteStorageAppSyncStatusCheck_t
-{
-	enum { k_iCallback = k_iSteamRemoteStorageCallbacks + 5 };
-	AppId_t m_nAppID;
-	EResult m_eResult;
-};
 
 //-----------------------------------------------------------------------------
 // Purpose: The result of a call to FileShare()
@@ -433,6 +368,8 @@ struct RemoteStoragePublishFileResult_t
 };
 
 // k_iSteamRemoteStorageCallbacks + 10 is deprecated! Do not reuse
+
+
 
 //-----------------------------------------------------------------------------
 // Purpose: The result of a call to DeletePublishedFile()
@@ -668,6 +605,7 @@ struct RemoteStorageEnumeratePublishedFilesByUserActionResult_t
 	uint32 m_rgRTimeUpdated[ k_unEnumeratePublishedFilesMaxResults ];
 };
 
+
 //-----------------------------------------------------------------------------
 // Purpose: Called periodically while a PublishWorkshopFile is in progress
 //-----------------------------------------------------------------------------
@@ -677,6 +615,7 @@ struct RemoteStoragePublishFileProgress_t
 	double m_dPercentFile;
 	bool m_bPreview;
 };
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Called when the content for a published file is updated
@@ -715,8 +654,8 @@ struct RemoteStorageFileReadAsyncComplete_t
 //			to remote session changes
 //			Note: only posted if this happens DURING the local app session
 //-----------------------------------------------------------------------------
-STEAM_CALLBACK_BEGIN(RemoteStorageLocalFileChange_t, k_iSteamRemoteStorageCallbacks + 33)
-STEAM_CALLBACK_END(0)
+STEAM_CALLBACK_BEGIN( RemoteStorageLocalFileChange_t, k_iSteamRemoteStorageCallbacks + 33 )
+STEAM_CALLBACK_END( 0 )
 
 #pragma pack( pop )
 

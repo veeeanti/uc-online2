@@ -37,9 +37,9 @@
 #endif
 
 #if defined( __cplusplus ) && ( __cplusplus >= 201103L )
-#define S_OVERRIDE override
+	#define S_OVERRIDE override
 #else
-#define S_OVERRIDE
+	#define S_OVERRIDE
 #endif
 
 #if ( defined(STEAM_API_EXPORTS) || defined(STEAM_API_NODLL) ) && !defined(API_GEN)
@@ -58,18 +58,19 @@ typedef int32 HSteamUser;
 // A fixed size buffer to receive an error message that is returned by some API
 // calls.
 const int k_cchMaxSteamErrMsg = 1024;
-typedef char SteamErrMsg[k_cchMaxSteamErrMsg];
+typedef char SteamErrMsg[ k_cchMaxSteamErrMsg ];
 
 // #define away __cdecl on posix.
 // This is really, really bad.  We're sorry.  But it's been this way for
 // a long time now and it's scary to change it, as there may be others that
 // depend on it.
 #ifndef _WIN32
-#define __cdecl
+	#define __cdecl
 #endif
+
 // function prototype
-extern "C" typedef void (S_CALLTYPE* SteamAPIWarningMessageHook_t)(int, const char*);
-extern "C" typedef uint32(S_CALLTYPE* SteamAPI_CheckCallbackRegistered_t)(int iCallbackNum);
+extern "C" typedef void ( S_CALLTYPE *SteamAPIWarningMessageHook_t )( int, const char * );
+extern "C" typedef uint32 ( S_CALLTYPE *SteamAPI_CheckCallbackRegistered_t )( int iCallbackNum );
 #if defined( __SNC__ )
 	#pragma diag_suppress=1700	   // warning 1700: class "%s" has virtual functions but non-virtual destructor
 #endif
@@ -169,8 +170,8 @@ public:
 protected:
 	friend class CCallbackMgr;
 	friend class CCallbackDispatcher;
-	virtual void Run(void* pvParam) S_OVERRIDE = 0;
-	virtual void Run(void* pvParam, bool /*bIOFailure*/, SteamAPICall_t /*hSteamAPICall*/) S_OVERRIDE { Run(pvParam); }
+	virtual void Run( void *pvParam ) S_OVERRIDE = 0;
+	virtual void Run( void *pvParam, bool /*bIOFailure*/, SteamAPICall_t /*hSteamAPICall*/ ) S_OVERRIDE { Run( pvParam ); }
 	virtual int GetCallbackSizeBytes() S_OVERRIDE { return sizeof_P; }
 };
 
@@ -194,9 +195,9 @@ public:
 
 	void SetGameserverFlag() { m_nCallbackFlags |= k_ECallbackFlagsGameServer; }
 private:
-	virtual void Run(void* pvParam) S_OVERRIDE;
-	virtual void Run(void* pvParam, bool bIOFailure, SteamAPICall_t hSteamAPICall) S_OVERRIDE;
-	virtual int GetCallbackSizeBytes() S_OVERRIDE { return sizeof(P); }
+	virtual void Run( void *pvParam ) S_OVERRIDE;
+	virtual void Run( void *pvParam, bool bIOFailure, SteamAPICall_t hSteamAPICall ) S_OVERRIDE;
+	virtual int GetCallbackSizeBytes() S_OVERRIDE { return sizeof( P ); }
 
 	SteamAPICall_t m_hAPICall;
 	T *m_pObj;
@@ -224,7 +225,7 @@ public:
 	void Unregister();
 
 protected:
-	virtual void Run(void* pvParam) S_OVERRIDE;
+	virtual void Run( void *pvParam ) S_OVERRIDE;
 	
 	T *m_pObj;
 	func_t m_Func;

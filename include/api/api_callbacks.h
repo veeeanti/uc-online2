@@ -1,5 +1,6 @@
 extern bool s_bDispatcherInited;
 CCallbackDispatcher* GetDispatcher();
+S_API void S_CALLTYPE Steam_RunCallbacks(HSteamPipe hPipe, bool bServer);
 
 static void DoFrame(HSteamPipe hPipe, bool bServer)
 {

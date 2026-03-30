@@ -19,11 +19,13 @@ enum ESteamDeviceFormFactor
 	k_ESteamDeviceFormFactorTablet		= 2,
 	k_ESteamDeviceFormFactorComputer	= 3,
 	k_ESteamDeviceFormFactorTV			= 4,
-	k_ESteamDeviceFormFactorVRHeadset   = 5,
+	k_ESteamDeviceFormFactorVRHeadset	= 5,
 };
+
 
 // Steam Remote Play session ID
 typedef uint32 RemotePlaySessionID_t;
+
 
 // Steam Remote Play mouse cursor ID
 typedef uint32 RemotePlayCursorID_t;
@@ -159,6 +161,23 @@ enum ERemotePlayScancode
 	k_ERemotePlayScancodeDown = 81,
 	k_ERemotePlayScancodeUp = 82,
 
+	k_ERemotePlayScancodeKeypadDivide = 84,
+	k_ERemotePlayScancodeKeypadMultiply = 85,
+	k_ERemotePlayScancodeKeypadMinus = 86,
+	k_ERemotePlayScancodeKeypadPlus = 87,
+	k_ERemotePlayScancodeKeypadEnter = 88,
+	k_ERemotePlayScancodeKeypad1 = 89,
+	k_ERemotePlayScancodeKeypad2 = 90,
+	k_ERemotePlayScancodeKeypad3 = 91,
+	k_ERemotePlayScancodeKeypad4 = 92,
+	k_ERemotePlayScancodeKeypad5 = 93,
+	k_ERemotePlayScancodeKeypad6 = 94,
+	k_ERemotePlayScancodeKeypad7 = 95,
+	k_ERemotePlayScancodeKeypad8 = 96,
+	k_ERemotePlayScancodeKeypad9 = 97,
+	k_ERemotePlayScancodeKeypad0 = 98,
+	k_ERemotePlayScancodeKeypadPeriod = 99,
+
 	k_ERemotePlayScancodeLeftControl = 224,
 	k_ERemotePlayScancodeLeftShift = 225,
 	k_ERemotePlayScancodeLeftAlt = 226,
@@ -175,18 +194,18 @@ enum ERemotePlayScancode
 //-----------------------------------------------------------------------------
 enum ERemotePlayKeyModifier
 {
-	k_ERemotePlayKeyModifierNone = 0x0000,
-	k_ERemotePlayKeyModifierLeftShift = 0x0001,
-	k_ERemotePlayKeyModifierRightShift = 0x0002,
-	k_ERemotePlayKeyModifierLeftControl = 0x0040,
-	k_ERemotePlayKeyModifierRightControl = 0x0080,
-	k_ERemotePlayKeyModifierLeftAlt = 0x0100,
-	k_ERemotePlayKeyModifierRightAlt = 0x0200,
-	k_ERemotePlayKeyModifierLeftGUI = 0x0400,
-	k_ERemotePlayKeyModifierRightGUI = 0x0800,
-	k_ERemotePlayKeyModifierNumLock = 0x1000,
-	k_ERemotePlayKeyModifierCapsLock = 0x2000,
-	k_ERemotePlayKeyModifierMask = 0xFFFF,
+	k_ERemotePlayKeyModifierNone			= 0x0000,
+	k_ERemotePlayKeyModifierLeftShift		= 0x0001,
+	k_ERemotePlayKeyModifierRightShift		= 0x0002,
+	k_ERemotePlayKeyModifierLeftControl		= 0x0040,
+	k_ERemotePlayKeyModifierRightControl	= 0x0080,
+	k_ERemotePlayKeyModifierLeftAlt			= 0x0100,
+	k_ERemotePlayKeyModifierRightAlt		= 0x0200,
+	k_ERemotePlayKeyModifierLeftGUI			= 0x0400,
+	k_ERemotePlayKeyModifierRightGUI		= 0x0800,
+	k_ERemotePlayKeyModifierNumLock			= 0x1000,
+	k_ERemotePlayKeyModifierCapsLock		= 0x2000,
+	k_ERemotePlayKeyModifierMask			= 0xFFFF,
 };
 
 
@@ -243,12 +262,13 @@ struct RemotePlayInput_t
 		RemotePlayInputKey_t m_Key;
 
 		// Unused space for future use
-		char padding[64 - (sizeof(m_unSessionID) + sizeof(m_eType))];
+		char padding[ 64 - ( sizeof( m_unSessionID ) + sizeof( m_eType ) ) ];
 	};
 };
 //COMPILE_TIME_ASSERT( sizeof( RemotePlayInput_t ) == 64 );
 
 #pragma pack( pop )
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Functions to provide information about Steam Remote Play sessions
@@ -258,32 +278,31 @@ class ISteamRemotePlay
 public:
 	// Get the number of currently connected Steam Remote Play sessions
 	virtual uint32 GetSessionCount() = 0;
-
+	
 	// Get the currently connected Steam Remote Play session ID at the specified index. Returns zero if index is out of bounds.
-	virtual RemotePlaySessionID_t GetSessionID(int iSessionIndex) = 0;
+	virtual RemotePlaySessionID_t GetSessionID( int iSessionIndex ) = 0;
 
 	// Get the SteamID of the connected user
-	virtual CSteamID GetSessionSteamID(RemotePlaySessionID_t unSessionID) = 0;
+	virtual CSteamID GetSessionSteamID( RemotePlaySessionID_t unSessionID ) = 0;
 
 	// Get the name of the session client device
 	// This returns NULL if the sessionID is not valid
-	virtual const char* GetSessionClientName(RemotePlaySessionID_t unSessionID) = 0;
+	virtual const char *GetSessionClientName( RemotePlaySessionID_t unSessionID ) = 0;
 
 	// Get the form factor of the session client device
-	virtual ESteamDeviceFormFactor GetSessionClientFormFactor(RemotePlaySessionID_t unSessionID) = 0;
+	virtual ESteamDeviceFormFactor GetSessionClientFormFactor( RemotePlaySessionID_t unSessionID ) = 0;
 
 	// Get the resolution, in pixels, of the session client device
 	// This is set to 0x0 if the resolution is not available
-	virtual bool BGetSessionClientResolution(RemotePlaySessionID_t unSessionID, int* pnResolutionX, int* pnResolutionY) = 0;
+	virtual bool BGetSessionClientResolution( RemotePlaySessionID_t unSessionID, int *pnResolutionX, int *pnResolutionY ) = 0;
 
 	// Show the Remote Play Together UI in the game overlay
 	// This returns false if your game is not configured for Remote Play Together
 	virtual bool ShowRemotePlayTogetherUI() = 0;
 
-	// Invite a friend to Remote Play Together, or create a guest invite if steamIDFriend is empty
-	// This will automatically start Remote Play Together if it hasn't already been started
+	// Invite a friend to Remote Play Together, or create a guest invite if steamIDFriend is CSteamID()
 	// This returns false if the invite can't be sent or your game is not configured for Remote Play Together
-	virtual bool BSendRemotePlayTogetherInvite(CSteamID steamIDFriend) = 0;
+	virtual bool BSendRemotePlayTogetherInvite( CSteamID steamIDFriend ) = 0;
 
 	// Make mouse and keyboard input for Remote Play Together sessions available via GetInput() instead of being merged with local input
 	virtual bool BEnableRemotePlayTogetherDirectInput() = 0;
@@ -296,11 +315,11 @@ public:
 	//
 	// pInput is an array of input events that will be filled in by this function, up to unMaxEvents.
 	// This returns the number of events copied to pInput, or the number of events available if pInput is nullptr.
-	virtual uint32 GetInput(RemotePlayInput_t* pInput, uint32 unMaxEvents) = 0;
+	virtual uint32 GetInput( RemotePlayInput_t *pInput, uint32 unMaxEvents ) = 0;
 
 	// Set the mouse cursor visibility for a remote player
 	// This is available after calling BEnableRemotePlayTogetherDirectInput()
-	virtual void SetMouseVisibility(RemotePlaySessionID_t unSessionID, bool bVisible) = 0;
+	virtual void SetMouseVisibility( RemotePlaySessionID_t unSessionID, bool bVisible ) = 0;
 
 	// Set the mouse cursor position for a remote player
 	// This is available after calling BEnableRemotePlayTogetherDirectInput()
@@ -308,7 +327,7 @@ public:
 	// This is used to warp the cursor to a specific location and isn't needed during normal event processing.
 	//
 	// The position is normalized relative to the window, where 0,0 is the upper left, and 1,1 is the lower right.
-	virtual void SetMousePosition(RemotePlaySessionID_t unSessionID, float flNormalizedX, float flNormalizedY) = 0;
+	virtual void SetMousePosition( RemotePlaySessionID_t unSessionID, float flNormalizedX, float flNormalizedY ) = 0;
 
 	// Create a cursor that can be used with SetMouseCursor()
 	// This is available after calling BEnableRemotePlayTogetherDirectInput()
@@ -320,20 +339,22 @@ public:
 	// nHotY - The Y coordinate of the cursor hot spot in pixels, offset from the top of the cursor
 	// pBGRA - A pointer to the cursor pixels, with the color channels in red, green, blue, alpha order
 	// nPitch - The distance between pixel rows in bytes, defaults to nWidth * 4 
-	virtual RemotePlayCursorID_t CreateMouseCursor(int nWidth, int nHeight, int nHotX, int nHotY, const void* pBGRA, int nPitch = 0) = 0;
+	virtual RemotePlayCursorID_t CreateMouseCursor( int nWidth, int nHeight, int nHotX, int nHotY, const void *pBGRA, int nPitch = 0 ) = 0;
 
 	// Set the mouse cursor for a remote player
 	// This is available after calling BEnableRemotePlayTogetherDirectInput()
 	//
 	// The cursor ID is a value returned by CreateMouseCursor()
-	virtual void SetMouseCursor(RemotePlaySessionID_t unSessionID, RemotePlayCursorID_t unCursorID) = 0;
+	virtual void SetMouseCursor( RemotePlaySessionID_t unSessionID, RemotePlayCursorID_t unCursorID ) = 0;
 };
 
 #define STEAMREMOTEPLAY_INTERFACE_VERSION "STEAMREMOTEPLAY_INTERFACE_VERSION003"
 
 // Global interface accessor
-//inline ISteamRemotePlay *SteamRemotePlay();
-//STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamRemotePlay *, SteamRemotePlay, STEAMREMOTEPLAY_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamRemotePlay *SteamRemotePlay();
+STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamRemotePlay *, SteamRemotePlay, STEAMREMOTEPLAY_INTERFACE_VERSION );
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )
@@ -354,9 +375,11 @@ STEAM_CALLBACK_BEGIN( SteamRemotePlaySessionDisconnected_t, k_iSteamRemotePlayCa
 	STEAM_CALLBACK_MEMBER( 0, RemotePlaySessionID_t, m_unSessionID )
 STEAM_CALLBACK_END( 0 )
 
-STEAM_CALLBACK_BEGIN(SteamRemotePlayTogetherGuestInvite_t, k_iSteamRemotePlayCallbacks + 3)
-    STEAM_CALLBACK_MEMBER_ARRAY(0, char, m_szConnectURL, 1024)
-STEAM_CALLBACK_END(0)
+
+STEAM_CALLBACK_BEGIN( SteamRemotePlayTogetherGuestInvite_t, k_iSteamRemotePlayCallbacks + 3 )
+	STEAM_CALLBACK_MEMBER_ARRAY( 0, char, m_szConnectURL, 1024 )
+STEAM_CALLBACK_END( 0 )
+
 
 #pragma pack( pop )
 

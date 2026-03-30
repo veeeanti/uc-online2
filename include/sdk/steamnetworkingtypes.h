@@ -16,20 +16,17 @@
 //-----------------------------------------------------------------------------
 // SteamNetworkingSockets config.
 #if !defined(STEAMNETWORKINGSOCKETS_STANDALONELIB) && !defined(STEAMNETWORKINGSOCKETS_STEAMAPI)
-#define STEAMNETWORKINGSOCKETS_STEAMAPI
+	#define STEAMNETWORKINGSOCKETS_STEAMAPI
 #endif
 //-----------------------------------------------------------------------------
 
-#if !defined( STEAMNETWORKINGSOCKETS_OPENSOURCE ) && !defined( STEAMNETWORKINGSOCKETS_STREAMINGCLIENT )
-	#define STEAMNETWORKINGSOCKETS_STEAM
-#endif
 #ifdef NN_NINTENDO_SDK // We always static link on Nintendo
 	#define STEAMNETWORKINGSOCKETS_STATIC_LINK
 #endif
 #if defined( STEAMNETWORKINGSOCKETS_STATIC_LINK )
 	#define STEAMNETWORKINGSOCKETS_INTERFACE extern "C"
 #elif defined( STEAMNETWORKINGSOCKETS_FOREXPORT )
-    #if defined( _WIN32 ) || defined( __ORBIS__ ) || defined( __PROSPERO__ )
+	#if defined( _WIN32 ) || defined( __ORBIS__ ) || defined( __PROSPERO__ )
 		#define STEAMNETWORKINGSOCKETS_INTERFACE extern "C" __declspec( dllexport )
 	#else
 		#define STEAMNETWORKINGSOCKETS_INTERFACE extern "C" __attribute__((visibility("default")))
@@ -274,10 +271,10 @@ struct SteamNetworkingIdentity
 	void SetSteamID64( uint64 steamID ); // Takes SteamID as raw 64-bit number
 	uint64 GetSteamID64() const; // Returns 0 if identity is not SteamID
 
-	bool SetXboxPairwiseID(const char* pszString); // Returns false if invalid length
-	const char* GetXboxPairwiseID() const; // Returns nullptr if not Xbox ID
+	bool SetXboxPairwiseID( const char *pszString ); // Returns false if invalid length
+	const char *GetXboxPairwiseID() const; // Returns nullptr if not Xbox ID
 
-	void SetPSNID(uint64 id);
+	void SetPSNID( uint64 id );
 	uint64 GetPSNID() const; // Returns 0 if not PSN
 
 	void SetIPAddr( const SteamNetworkingIPAddr &addr ); // Set to specified IP:port
@@ -336,7 +333,7 @@ struct SteamNetworkingIdentity
 		uint64 m_steamID64;
 		uint64 m_PSNID;
 		char m_szGenericString[ k_cchMaxGenericString ];
-		char m_szXboxPairwiseID[k_cchMaxXboxPairwiseID];
+		char m_szXboxPairwiseID[ k_cchMaxXboxPairwiseID ];
 		uint8 m_genericBytes[ k_cbMaxGenericBytes ];
 		char m_szUnknownRawString[ k_cchMaxString ];
 		SteamNetworkingIPAddr m_ip;
@@ -1692,9 +1689,9 @@ enum ESteamNetworkingConfigValue
 	k_ESteamNetworkingConfig_LogLevel_SDRRelayPings = 18, // [global int32] Ping relays
 
 	// Experimental.  Set the ECN header field on all outbound UDP packets
-    // -1 = the default, and means "don't set anything".
-    // 0..3 = set that value.  (Even though 0 is the default UDP ECN value, a 0 here means "explicitly set a 0".)
-    k_ESteamNetworkingConfig_ECN = 999,
+	// -1 = the default, and means "don't set anything".
+	// 0..3 = set that value.  (Even though 0 is the default UDP ECN value, a 0 here means "explicitly set a 0".)
+	k_ESteamNetworkingConfig_ECN = 999,
 
 	// Deleted, do not use
 	k_ESteamNetworkingConfig_DELETED_EnumerateDevVars = 35,
@@ -1828,7 +1825,7 @@ inline SteamNetworkingPOPID CalculateSteamNetworkingPOPIDFromString( const char 
 	//
 	// There is also extra paranoia to make sure the bytes are not treated as signed.
 	SteamNetworkingPOPID result = (uint32)(uint8)pszCode[0] << 16U;
-	if (result && pszCode[1])
+	if ( result && pszCode[1] )
 	{
 		result |= ( (uint32)(uint8)pszCode[1] << 8U );
 		if ( pszCode[2] )
@@ -1894,16 +1891,14 @@ inline void SteamNetworkingIdentity::SetSteamID( CSteamID steamID ) { SetSteamID
 inline CSteamID SteamNetworkingIdentity::GetSteamID() const { return CSteamID( GetSteamID64() ); }
 inline void SteamNetworkingIdentity::SetSteamID64( uint64 steamID ) { m_eType = k_ESteamNetworkingIdentityType_SteamID; m_cbSize = sizeof( m_steamID64 ); m_steamID64 = steamID; }
 inline uint64 SteamNetworkingIdentity::GetSteamID64() const { return m_eType == k_ESteamNetworkingIdentityType_SteamID ? m_steamID64 : 0; }
-inline bool SteamNetworkingIdentity::SetXboxPairwiseID(const char* pszString) {
-	size_t l = strlen(pszString); if (l < 1 || l >= sizeof(m_szXboxPairwiseID)) return false;
-	m_eType = k_ESteamNetworkingIdentityType_XboxPairwiseID; m_cbSize = int(l + 1); memcpy(m_szXboxPairwiseID, pszString, m_cbSize); return true;
-}
-inline const char* SteamNetworkingIdentity::GetXboxPairwiseID() const { return m_eType == k_ESteamNetworkingIdentityType_XboxPairwiseID ? m_szXboxPairwiseID : NULL; }
-inline void SteamNetworkingIdentity::SetPSNID(uint64 id) { m_eType = k_ESteamNetworkingIdentityType_SonyPSN; m_cbSize = sizeof(m_PSNID); m_PSNID = id; }
+inline bool SteamNetworkingIdentity::SetXboxPairwiseID( const char *pszString ) { size_t l = strlen( pszString ); if ( l < 1 || l >= sizeof(m_szXboxPairwiseID) ) return false;
+	m_eType = k_ESteamNetworkingIdentityType_XboxPairwiseID; m_cbSize = int(l+1); memcpy( m_szXboxPairwiseID, pszString, m_cbSize ); return true; }
+inline const char *SteamNetworkingIdentity::GetXboxPairwiseID() const { return m_eType == k_ESteamNetworkingIdentityType_XboxPairwiseID ? m_szXboxPairwiseID : NULL; }
+inline void SteamNetworkingIdentity::SetPSNID( uint64 id ) { m_eType = k_ESteamNetworkingIdentityType_SonyPSN; m_cbSize = sizeof( m_PSNID ); m_PSNID = id; }
 inline uint64 SteamNetworkingIdentity::GetPSNID() const { return m_eType == k_ESteamNetworkingIdentityType_SonyPSN ? m_PSNID : 0; }
 inline void SteamNetworkingIdentity::SetIPAddr( const SteamNetworkingIPAddr &addr ) { m_eType = k_ESteamNetworkingIdentityType_IPAddress; m_cbSize = (int)sizeof(m_ip); m_ip = addr; }
 inline const SteamNetworkingIPAddr *SteamNetworkingIdentity::GetIPAddr() const { return m_eType == k_ESteamNetworkingIdentityType_IPAddress ? &m_ip : NULL; }
-inline void SteamNetworkingIdentity::SetIPv4Addr(uint32 nIPv4, uint16 nPort) { m_eType = k_ESteamNetworkingIdentityType_IPAddress; m_cbSize = (int)sizeof(m_ip); m_ip.SetIPv4(nIPv4, nPort); }
+inline void SteamNetworkingIdentity::SetIPv4Addr( uint32 nIPv4, uint16 nPort ) { m_eType = k_ESteamNetworkingIdentityType_IPAddress; m_cbSize = (int)sizeof(m_ip); m_ip.SetIPv4( nIPv4, nPort ); }
 inline uint32 SteamNetworkingIdentity::GetIPv4() const { return m_eType == k_ESteamNetworkingIdentityType_IPAddress ? m_ip.GetIPv4() : 0; }
 inline ESteamNetworkingFakeIPType SteamNetworkingIdentity::GetFakeIPType() const { return m_eType == k_ESteamNetworkingIdentityType_IPAddress ? m_ip.GetFakeIPType() : k_ESteamNetworkingFakeIPType_Invalid; }
 inline void SteamNetworkingIdentity::SetLocalHost() { m_eType = k_ESteamNetworkingIdentityType_IPAddress; m_cbSize = (int)sizeof(m_ip); m_ip.SetIPv6LocalHost(); }

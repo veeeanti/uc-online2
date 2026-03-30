@@ -291,12 +291,16 @@ public:
 #define STEAMNETWORKING_INTERFACE_VERSION "SteamNetworking006"
 
 // Global interface accessor
-//inline ISteamNetworking *SteamNetworking();
-//STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamNetworking *, SteamNetworking, STEAMNETWORKING_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamNetworking *SteamNetworking();
+STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamNetworking *, SteamNetworking, STEAMNETWORKING_INTERFACE_VERSION );
+#endif
 
 // Global accessor for the gameserver client
-//inline ISteamNetworking *SteamGameServerNetworking();
-//STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamNetworking *, SteamGameServerNetworking, STEAMNETWORKING_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamNetworking *SteamGameServerNetworking();
+STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamNetworking *, SteamGameServerNetworking, STEAMNETWORKING_INTERFACE_VERSION );
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

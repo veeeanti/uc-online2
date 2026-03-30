@@ -56,6 +56,7 @@ enum ETextFilteringContext
 	k_ETextFilteringContextName = 3,	// Character or item name
 };
 
+
 //-----------------------------------------------------------------------------
 // Purpose: interface to user independent utility functions
 //-----------------------------------------------------------------------------
@@ -207,10 +208,10 @@ public:
 
 	// Opens a floating keyboard over the game content and sends OS keyboard keys directly to the game.
 	// The text field position is specified in pixels relative the origin of the game window and is used to position the floating keyboard in a way that doesn't cover the text field
-	virtual bool ShowFloatingGamepadTextInput(EFloatingGamepadTextInputMode eKeyboardMode, int nTextFieldXPosition, int nTextFieldYPosition, int nTextFieldWidth, int nTextFieldHeight) = 0;
+	virtual bool ShowFloatingGamepadTextInput( EFloatingGamepadTextInputMode eKeyboardMode, int nTextFieldXPosition, int nTextFieldYPosition, int nTextFieldWidth, int nTextFieldHeight ) = 0;
 
 	// In game launchers that don't have controller support you can call this to have Steam Input translate the controller input into mouse/kb to navigate the launcher
-	virtual void SetGameLauncherMode(bool bLauncherMode) = 0;
+	virtual void SetGameLauncherMode( bool bLauncherMode ) = 0;
 
 	// Dismisses the floating keyboard.
 	virtual bool DismissFloatingGamepadTextInput() = 0;
@@ -222,12 +223,16 @@ public:
 #define STEAMUTILS_INTERFACE_VERSION "SteamUtils010"
 
 // Global interface accessor
-//inline ISteamUtils *SteamUtils();
-//STEAM_DEFINE_INTERFACE_ACCESSOR( ISteamUtils *, SteamUtils, SteamInternal_FindOrCreateUserInterface( 0, STEAMUTILS_INTERFACE_VERSION ), "user", STEAMUTILS_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamUtils *SteamUtils();
+STEAM_DEFINE_INTERFACE_ACCESSOR( ISteamUtils *, SteamUtils, SteamInternal_FindOrCreateUserInterface( 0, STEAMUTILS_INTERFACE_VERSION ), "user", STEAMUTILS_INTERFACE_VERSION );
+#endif
 
 // Global accessor for the gameserver client
-//inline ISteamUtils *SteamGameServerUtils();
-//STEAM_DEFINE_INTERFACE_ACCESSOR( ISteamUtils *, SteamGameServerUtils, SteamInternal_FindOrCreateGameServerInterface( 0, STEAMUTILS_INTERFACE_VERSION ), "gameserver", STEAMUTILS_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamUtils *SteamGameServerUtils();
+STEAM_DEFINE_INTERFACE_ACCESSOR( ISteamUtils *, SteamGameServerUtils, SteamInternal_FindOrCreateGameServerInterface( 0, STEAMUTILS_INTERFACE_VERSION ), "gameserver", STEAMUTILS_INTERFACE_VERSION );
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )
@@ -315,7 +320,7 @@ struct GamepadTextInputDismissed_t
 
 // k_iSteamUtilsCallbacks + 15 through 35 are taken
 
-STEAM_CALLBACK_BEGIN(AppResumingFromSuspend_t, k_iSteamUtilsCallbacks + 36)
+STEAM_CALLBACK_BEGIN( AppResumingFromSuspend_t, k_iSteamUtilsCallbacks + 36 )
 STEAM_CALLBACK_END(0)
 
 // k_iSteamUtilsCallbacks + 37 is taken

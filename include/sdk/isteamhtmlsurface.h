@@ -203,15 +203,16 @@ public:
 	virtual void JSDialogResponse( HHTMLBrowser unBrowserHandle, bool bResult ) = 0;
 
 	// You MUST call this in response to a HTML_FileOpenDialog_t callback
-	STEAM_IGNOREATTR()
 	virtual void FileLoadDialogResponse( HHTMLBrowser unBrowserHandle, const char **pchSelectedFiles ) = 0;
 };
 
 #define STEAMHTMLSURFACE_INTERFACE_VERSION "STEAMHTMLSURFACE_INTERFACE_VERSION_005"
 
 // Global interface accessor
-//inline ISteamHTMLSurface *SteamHTMLSurface();
-//STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamHTMLSurface *, SteamHTMLSurface, STEAMHTMLSURFACE_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamHTMLSurface *SteamHTMLSurface();
+STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamHTMLSurface *, SteamHTMLSurface, STEAMHTMLSURFACE_INTERFACE_VERSION );
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )
@@ -428,7 +429,7 @@ STEAM_CALLBACK_END(7)
 //-----------------------------------------------------------------------------
 STEAM_CALLBACK_BEGIN( HTML_SetCursor_t, k_iSteamHTMLSurfaceCallbacks + 22 )
 STEAM_CALLBACK_MEMBER( 0, HHTMLBrowser, unBrowserHandle ) // the handle of the surface 
-STEAM_CALLBACK_MEMBER(1, uint32, eMouseCursor) // the EHTMLMouseCursor to display
+STEAM_CALLBACK_MEMBER( 1, uint32, eMouseCursor ) // the EHTMLMouseCursor to display
 STEAM_CALLBACK_END(2)
 
 
@@ -437,7 +438,7 @@ STEAM_CALLBACK_END(2)
 //-----------------------------------------------------------------------------
 STEAM_CALLBACK_BEGIN( HTML_StatusText_t, k_iSteamHTMLSurfaceCallbacks + 23 )
 STEAM_CALLBACK_MEMBER( 0, HHTMLBrowser, unBrowserHandle ) // the handle of the surface 
-STEAM_CALLBACK_MEMBER(1, const char*, pchMsg) // the message text
+STEAM_CALLBACK_MEMBER( 1, const char *, pchMsg ) // the message text
 STEAM_CALLBACK_END(2)
 
 
@@ -446,7 +447,7 @@ STEAM_CALLBACK_END(2)
 //-----------------------------------------------------------------------------
 STEAM_CALLBACK_BEGIN( HTML_ShowToolTip_t, k_iSteamHTMLSurfaceCallbacks + 24 )
 STEAM_CALLBACK_MEMBER( 0, HHTMLBrowser, unBrowserHandle ) // the handle of the surface 
-STEAM_CALLBACK_MEMBER(1, const char*, pchMsg) // the tooltip text
+STEAM_CALLBACK_MEMBER( 1, const char *, pchMsg ) // the tooltip text
 STEAM_CALLBACK_END(2)
 
 
@@ -455,7 +456,7 @@ STEAM_CALLBACK_END(2)
 //-----------------------------------------------------------------------------
 STEAM_CALLBACK_BEGIN( HTML_UpdateToolTip_t, k_iSteamHTMLSurfaceCallbacks + 25 )
 STEAM_CALLBACK_MEMBER( 0, HHTMLBrowser, unBrowserHandle ) // the handle of the surface 
-STEAM_CALLBACK_MEMBER(1, const char*, pchMsg) // the new tooltip text
+STEAM_CALLBACK_MEMBER( 1, const char *, pchMsg ) // the new tooltip text
 STEAM_CALLBACK_END(2)
 
 

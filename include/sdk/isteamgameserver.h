@@ -137,24 +137,24 @@ public:
 	virtual void SetRegion( const char *pszRegion ) = 0;
 
 	/// Indicate whether you wish to be listed on the master server list
-    /// and/or respond to server browser / LAN discovery packets.
-    /// The server starts with this value set to false.  You should set all
-    /// relevant server parameters before enabling advertisement on the server.
-    ///
-    /// (This function used to be named EnableHeartbeats, so if you are wondering
-    /// where that function went, it's right here.  It does the same thing as before,
-    /// the old name was just confusing.)
-	virtual void SetAdvertiseServerActive(bool bActive) = 0;
+	/// and/or respond to server browser / LAN discovery packets.
+	/// The server starts with this value set to false.  You should set all
+	/// relevant server parameters before enabling advertisement on the server.
+	///
+	/// (This function used to be named EnableHeartbeats, so if you are wondering
+	/// where that function went, it's right here.  It does the same thing as before,
+	/// the old name was just confusing.)
+	virtual void SetAdvertiseServerActive( bool bActive ) = 0;
 
 //
-// Player list management / authentication
+// Player list management / authentication.
 //
 
 	// Retrieve ticket to be sent to the entity who wishes to authenticate you ( using BeginAuthSession API ). 
 	// pcbTicket retrieves the length of the actual ticket.
 	// SteamNetworkingIdentity is an optional parameter to hold the public IP address of the entity you are connecting to
 	// if an IP address is passed Steam will only allow the ticket to be used by an entity with that IP address
-	virtual HAuthTicket GetAuthSessionTicket(void* pTicket, int cbMaxTicket, uint32* pcbTicket, const SteamNetworkingIdentity* pSnid) = 0;
+	virtual HAuthTicket GetAuthSessionTicket( void *pTicket, int cbMaxTicket, uint32 *pcbTicket, const SteamNetworkingIdentity *pSnid ) = 0;
 
 	// Authenticate ticket ( from GetAuthSessionTicket ) from entity steamID to be sure it is valid and isnt reused
 	// Registers for callbacks if the entity goes offline or cancels the ticket ( see ValidateAuthTicketResponse_t callback and EAuthSessionResponse )
@@ -186,10 +186,10 @@ public:
 	// connect to
 	virtual SteamIPAddress_t GetPublicIP() = 0;
 
-	// Server browser related query packet processing for shared socket mode.  These are used
-	// when you pass STEAMGAMESERVER_QUERY_PORT_SHARED as the query port to SteamGameServer_Init.
-	// IP address and port are in host order, i.e 127.0.0.1 == 0x7f000001
-	
+// Server browser related query packet processing for shared socket mode.  These are used
+// when you pass STEAMGAMESERVER_QUERY_PORT_SHARED as the query port to SteamGameServer_Init.
+// IP address and port are in host order, i.e 127.0.0.1 == 0x7f000001
+
 	// These are used when you've elected to multiplex the game server's UDP socket
 	// rather than having the master server updater use its own sockets.
 	// 
@@ -218,19 +218,22 @@ public:
 	STEAM_CALL_RESULT( ComputeNewPlayerCompatibilityResult_t )
 	virtual SteamAPICall_t ComputeNewPlayerCompatibility( CSteamID steamIDNewPlayer ) = 0;
 
+
+
+
 	// Handles receiving a new connection from a Steam user.  This call will ask the Steam
-    // servers to validate the users identity, app ownership, and VAC status.  If the Steam servers 
-    // are off-line, then it will validate the cached ticket itself which will validate app ownership 
-    // and identity.  The AuthBlob here should be acquired on the game client using SteamUser()->InitiateGameConnection()
-    // and must then be sent up to the game server for authentication.
-    //
-    // Return Value: returns true if the users ticket passes basic checks. pSteamIDUser will contain the Steam ID of this user. pSteamIDUser must NOT be NULL
-    // If the call succeeds then you should expect a GSClientApprove_t or GSClientDeny_t callback which will tell you whether authentication
-    // for the user has succeeded or failed (the steamid in the callback will match the one returned by this call)
-    //
-    // DEPRECATED!  This function will be removed from the SDK in an upcoming version.
-    //              Please migrate to BeginAuthSession and related functions.
-	virtual bool SendUserConnectAndAuthenticate_DEPRECATED(uint32 unIPClient, const void* pvAuthBlob, uint32 cubAuthBlobSize, CSteamID* pSteamIDUser) = 0;
+	// servers to validate the users identity, app ownership, and VAC status.  If the Steam servers 
+	// are off-line, then it will validate the cached ticket itself which will validate app ownership 
+	// and identity.  The AuthBlob here should be acquired on the game client using SteamUser()->InitiateGameConnection()
+	// and must then be sent up to the game server for authentication.
+	//
+	// Return Value: returns true if the users ticket passes basic checks. pSteamIDUser will contain the Steam ID of this user. pSteamIDUser must NOT be NULL
+	// If the call succeeds then you should expect a GSClientApprove_t or GSClientDeny_t callback which will tell you whether authentication
+	// for the user has succeeded or failed (the steamid in the callback will match the one returned by this call)
+	//
+	// DEPRECATED!  This function will be removed from the SDK in an upcoming version.
+	//              Please migrate to BeginAuthSession and related functions.
+	virtual bool SendUserConnectAndAuthenticate_DEPRECATED( uint32 unIPClient, const void *pvAuthBlob, uint32 cubAuthBlobSize, CSteamID *pSteamIDUser ) = 0;
 
 	// Creates a fake user (ie, a bot) which will be listed as playing on the server, but skips validation.  
 	// 
@@ -244,43 +247,32 @@ public:
 	//
 	// DEPRECATED!  This function will be removed from the SDK in an upcoming version.
 	//              Please migrate to BeginAuthSession and related functions.
-	virtual void SendUserDisconnect_DEPRECATED(CSteamID steamIDUser) = 0;
+	virtual void SendUserDisconnect_DEPRECATED( CSteamID steamIDUser ) = 0;
 
 	// Update the data to be displayed in the server browser and matchmaking interfaces for a user
 	// currently connected to the server.  For regular users you must call this after you receive a
 	// GSUserValidationSuccess callback.
 	// 
 	// Return Value: true if successful, false if failure (ie, steamIDUser wasn't for an active player)
-	virtual bool BUpdateUserData(CSteamID steamIDUser, const char* pchPlayerName, uint32 uScore) = 0;
+	virtual bool BUpdateUserData( CSteamID steamIDUser, const char *pchPlayerName, uint32 uScore ) = 0;
 
-	// Deprecated functions.  These will be removed in a future version of the SDK.
-	// If you really need these, please contact us and help us understand what you are
-	// using them for.
+// Deprecated functions.  These will be removed in a future version of the SDK.
+// If you really need these, please contact us and help us understand what you are
+// using them for.
 
 	STEAM_PRIVATE_API(
-		virtual void SetMasterServerHeartbeatInterval_DEPRECATED(int iHeartbeatInterval) = 0;
-	virtual void ForceMasterServerHeartbeat_DEPRECATED() = 0;
+		virtual void SetMasterServerHeartbeatInterval_DEPRECATED( int iHeartbeatInterval ) = 0;
+		virtual void ForceMasterServerHeartbeat_DEPRECATED() = 0;
 	)
-
 };
 
 #define STEAMGAMESERVER_INTERFACE_VERSION "SteamGameServer015"
 
 // Global accessor
-//inline ISteamGameServer *SteamGameServer();
-//STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamGameServer *, SteamGameServer, STEAMGAMESERVER_INTERFACE_VERSION );
-
-// game server flags
-const uint32 k_unServerFlagNone = 0x00;
-const uint32 k_unServerFlagActive = 0x01;		// server has users playing
-const uint32 k_unServerFlagSecure = 0x02;		// server wants to be secure
-const uint32 k_unServerFlagDedicated = 0x04;		// server is dedicated
-const uint32 k_unServerFlagLinux = 0x08;		// linux build
-const uint32 k_unServerFlagPassworded = 0x10;		// password protected
-const uint32 k_unServerFlagPrivate = 0x20;		// server shouldn't list on master server and
-													// won't enforce authentication of users that connect to the server.
-													// Useful when you run a server where the clients may not
-													// be connected to the internet but you want them to play (i.e LANs)
+#ifndef STEAM_API_EXPORTS
+inline ISteamGameServer *SteamGameServer();
+STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamGameServer *, SteamGameServer, STEAMGAMESERVER_INTERFACE_VERSION );
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )

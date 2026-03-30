@@ -350,8 +350,8 @@ public:
 	/// Return value:
 	/// - k_EResultNoConnection - connection handle is invalid or connection has been closed.
 	/// - k_EResultInvalidParam - nLanes is bad
-	virtual EResult GetConnectionRealTimeStatus(HSteamNetConnection hConn, SteamNetConnectionRealTimeStatus_t* pStatus,
-		int nLanes, SteamNetConnectionRealTimeLaneStatus_t* pLanes) = 0;
+	virtual EResult GetConnectionRealTimeStatus( HSteamNetConnection hConn, SteamNetConnectionRealTimeStatus_t *pStatus,
+		int nLanes, SteamNetConnectionRealTimeLaneStatus_t *pLanes ) = 0;
 
 	/// Returns detailed connection stats in text format.  Useful
 	/// for dumping to a log, etc.
@@ -392,73 +392,73 @@ public:
 	virtual bool CreateSocketPair( HSteamNetConnection *pOutConnection1, HSteamNetConnection *pOutConnection2, bool bUseNetworkLoopback, const SteamNetworkingIdentity *pIdentity1, const SteamNetworkingIdentity *pIdentity2 ) = 0;
 
 	/// Configure multiple outbound messages streams ("lanes") on a connection, and
-    /// control head-of-line blocking between them.  Messages within a given lane
-    /// are always sent in the order they are queued, but messages from different
-    /// lanes may be sent out of order.  Each lane has its own message number
-    /// sequence.  The first message sent on each lane will be assigned the number 1.
-    ///
-    /// Each lane has a "priority". Lanes with higher numeric values will only be processed
-    /// when all lanes with lower number values are empty. The magnitudes of the priority
-    /// values are not relevant, only their sort order.
-    /// 
-    /// Each lane also is assigned a weight, which controls the approximate proportion
-    /// of the bandwidth that will be consumed by the lane, relative to other lanes
-    /// of the same priority.  (This is assuming the lane stays busy.  An idle lane
-    /// does not build up "credits" to be be spent once a message is queued.)
-    /// This value is only meaningful as a proportion, relative to other lanes with
-    /// the same priority.  For lanes with different priorities, the strict priority
-    /// order will prevail, and their weights relative to each other are not relevant.
-    /// Thus, if a lane has a unique priority value, the weight value for that lane is
-    /// not relevant.  
-    ///
-    /// Example: 3 lanes, with priorities [ 0, 10, 10 ] and weights [ (NA), 20, 5 ].
-    /// Messages sent on the first will always be sent first, before messages in the
-    /// other two lanes.  Its weight value is irrelevant, since there are no other
-    /// lanes with priority=0.  The other two lanes will share bandwidth, with the second
-    /// and third lanes sharing bandwidth using a ratio of approximately 4:1.
-    /// (The weights [ NA, 4, 1 ] would be equivalent.)
-    ///
-    /// Notes:
-    /// - At the time of this writing, some code has performance cost that is linear
-    ///   in the number of lanes, so keep the number of lanes to an absolute minimum.
-    ///   3 or so is fine; >8 is a lot.  The max number of lanes on Steam is 255,
-    ///   which is a very large number and not recommended!  If you are compiling this
-    ///   library from source, see STEAMNETWORKINGSOCKETS_MAX_LANES.)
-    /// - Lane priority values may be any int.  Their absolute value is not relevant,
-    ///   only the order matters.
-    /// - Weights must be positive, and due to implementation details, they are restricted
-    ///   to 16-bit values.  The absolute magnitudes don't matter, just the proportions.
-    /// - Messages sent on a lane index other than 0 have a small overhead on the wire,
-    ///   so for maximum wire efficiency, lane 0 should be the "most common" lane, regardless
-    ///   of priorities or weights.
-    /// - A connection has a single lane by default.  Calling this function with
-    ///   nNumLanes=1 is legal, but pointless, since the priority and weight values are
-    ///   irrelevant in that case.
-    /// - You may reconfigure connection lanes at any time, however reducing the number of
-    ///   lanes is not allowed.
-    /// - Reconfiguring lanes might restart any bandwidth sharing balancing.  Usually you
-    ///   will call this function once, near the start of the connection, perhaps after
-    ///   exchanging a few messages.
-    /// - To assign all lanes the same priority, you may use pLanePriorities=NULL.
-    /// - If you wish all lanes with the same priority to share bandwidth equally (or
-    ///   if no two lanes have the same priority value, and thus priority values are
-    ///   irrelevant), you may use pLaneWeights=NULL
-    /// - Priorities and weights determine the order that messages are SENT on the wire.
-    ///   There are NO GUARANTEES on the order that messages are RECEIVED!  Due to packet
-    ///   loss, out-of-order delivery, and subtle details of packet serialization, messages
-    ///   might still be received slightly out-of-order!  The *only* strong guarantee is that
-    ///   *reliable* messages on the *same lane* will be delivered in the order they are sent.
-    /// - Each host configures the lanes for the packets they send; the lanes for the flow
-    ///   in one direction are completely unrelated to the lanes in the opposite direction.
-    /// 
-    /// Return value:
-    /// - k_EResultNoConnection - bad hConn
-    /// - k_EResultInvalidParam - Invalid number of lanes, bad weights, or you tried to reduce the number of lanes
-    /// - k_EResultInvalidState - Connection is already dead, etc
-    /// 
-    /// See also:
-    /// SteamNetworkingMessage_t::m_idxLane
-	virtual EResult ConfigureConnectionLanes(HSteamNetConnection hConn, int nNumLanes, const int* pLanePriorities, const uint16* pLaneWeights) = 0;
+	/// control head-of-line blocking between them.  Messages within a given lane
+	/// are always sent in the order they are queued, but messages from different
+	/// lanes may be sent out of order.  Each lane has its own message number
+	/// sequence.  The first message sent on each lane will be assigned the number 1.
+	///
+	/// Each lane has a "priority".  Lanes with higher numeric values will only be processed
+	/// when all lanes with lower number values are empty.  The magnitudes of the priority
+	/// values are not relevant, only their sort order.
+	/// 
+	/// Each lane also is assigned a weight, which controls the approximate proportion
+	/// of the bandwidth that will be consumed by the lane, relative to other lanes
+	/// of the same priority.  (This is assuming the lane stays busy.  An idle lane
+	/// does not build up "credits" to be be spent once a message is queued.)
+	/// This value is only meaningful as a proportion, relative to other lanes with
+	/// the same priority.  For lanes with different priorities, the strict priority
+	/// order will prevail, and their weights relative to each other are not relevant.
+	/// Thus, if a lane has a unique priority value, the weight value for that lane is
+	/// not relevant.  
+	///
+	/// Example: 3 lanes, with priorities [ 0, 10, 10 ] and weights [ (NA), 20, 5 ].
+	/// Messages sent on the first will always be sent first, before messages in the
+	/// other two lanes.  Its weight value is irrelevant, since there are no other
+	/// lanes with priority=0.  The other two lanes will share bandwidth, with the second
+	/// and third lanes sharing bandwidth using a ratio of approximately 4:1.
+	/// (The weights [ NA, 4, 1 ] would be equivalent.)
+	///
+	/// Notes:
+	/// - At the time of this writing, some code has performance cost that is linear
+	///   in the number of lanes, so keep the number of lanes to an absolute minimum.
+	///   3 or so is fine; >8 is a lot.  The max number of lanes on Steam is 255,
+	///   which is a very large number and not recommended!  If you are compiling this
+	///   library from source, see STEAMNETWORKINGSOCKETS_MAX_LANES.)
+	/// - Lane priority values may be any int.  Their absolute value is not relevant,
+	///   only the order matters.
+	/// - Weights must be positive, and due to implementation details, they are restricted
+	///   to 16-bit values.  The absolute magnitudes don't matter, just the proportions.
+	/// - Messages sent on a lane index other than 0 have a small overhead on the wire,
+	///   so for maximum wire efficiency, lane 0 should be the "most common" lane, regardless
+	///   of priorities or weights.
+	/// - A connection has a single lane by default.  Calling this function with
+	///   nNumLanes=1 is legal, but pointless, since the priority and weight values are
+	///   irrelevant in that case.
+	/// - You may reconfigure connection lanes at any time, however reducing the number of
+	///   lanes is not allowed.
+	/// - Reconfiguring lanes might restart any bandwidth sharing balancing.  Usually you
+	///   will call this function once, near the start of the connection, perhaps after
+	///   exchanging a few messages.
+	/// - To assign all lanes the same priority, you may use pLanePriorities=NULL.
+	/// - If you wish all lanes with the same priority to share bandwidth equally (or
+	///   if no two lanes have the same priority value, and thus priority values are
+	///   irrelevant), you may use pLaneWeights=NULL
+	/// - Priorities and weights determine the order that messages are SENT on the wire.
+	///   There are NO GUARANTEES on the order that messages are RECEIVED!  Due to packet
+	///   loss, out-of-order delivery, and subtle details of packet serialization, messages
+	///   might still be received slightly out-of-order!  The *only* strong guarantee is that
+	///   *reliable* messages on the *same lane* will be delivered in the order they are sent.
+	/// - Each host configures the lanes for the packets they send; the lanes for the flow
+	///   in one direction are completely unrelated to the lanes in the opposite direction.
+	/// 
+	/// Return value:
+	/// - k_EResultNoConnection - bad hConn
+	/// - k_EResultInvalidParam - Invalid number of lanes, bad weights, or you tried to reduce the number of lanes
+	/// - k_EResultInvalidState - Connection is already dead, etc
+	/// 
+	/// See also:
+	/// SteamNetworkingMessage_t::m_idxLane
+	virtual EResult ConfigureConnectionLanes( HSteamNetConnection hConn, int nNumLanes, const int *pLanePriorities, const uint16 *pLaneWeights ) = 0;
 
 	//
 	// Identity and authentication
@@ -761,10 +761,10 @@ public:
 	/// to call ISteamNetworkingUtils::InitRelayNetworkAccess() when your app initializes
 	virtual bool ReceivedP2PCustomSignal( const void *pMsg, int cbMsg, ISteamNetworkingSignalingRecvContext *pContext ) = 0;
 
-   //
-   // Certificate provision by the application.  On Steam, we normally handle all this automatically
-   // and you will not need to use these advanced functions.
-   //
+	//
+	// Certificate provision by the application.  On Steam, we normally handle all this automatically
+	// and you will not need to use these advanced functions.
+	//
 
 	/// Get blob that describes a certificate request.  You can send this to your game coordinator.
 	/// Upon entry, *pcbBlob should contain the size of the buffer.  On successful exit, it will
@@ -779,14 +779,14 @@ public:
 	virtual bool SetCertificate( const void *pCertificate, int cbCertificate, SteamNetworkingErrMsg &errMsg ) = 0;
 
 	/// Reset the identity associated with this instance.
-    /// Any open connections are closed.  Any previous certificates, etc are discarded.
-    /// You can pass a specific identity that you want to use, or you can pass NULL,
-    /// in which case the identity will be invalid until you set it using SetCertificate
-    ///
-    /// NOTE: This function is not actually supported on Steam!  It is included
-    ///       for use on other platforms where the active user can sign out and
-    ///       a new user can sign in.
-	virtual void ResetIdentity(const SteamNetworkingIdentity* pIdentity) = 0;
+	/// Any open connections are closed.  Any previous certificates, etc are discarded.
+	/// You can pass a specific identity that you want to use, or you can pass NULL,
+	/// in which case the identity will be invalid until you set it using SetCertificate
+	///
+	/// NOTE: This function is not actually supported on Steam!  It is included
+	///       for use on other platforms where the active user can sign out and
+	///       a new user can sign in.
+	virtual void ResetIdentity( const SteamNetworkingIdentity *pIdentity ) = 0;
 
 	//
 	// Misc
@@ -800,71 +800,71 @@ public:
 	virtual void RunCallbacks() = 0;
 
 	//
-    // "FakeIP" system.
-    //
-    // A FakeIP is essentially a temporary, arbitrary identifier that
-    // happens to be a valid IPv4 address.  The purpose of this system is to make it
-    // easy to integrate with existing code that identifies hosts using IPv4 addresses.
-    // The FakeIP address will never actually be used to send or receive any packets
-    // on the Internet, it is strictly an identifier.
-    //
-    // FakeIP addresses are designed to (hopefully) pass through existing code as
-    // transparently as possible, while conflicting with "real" addresses that might
-    // be in use on networks (both the Internet and LANs) in the same code as little
-    // as possible.  At the time this comment is being written, they come from the
-    // 169.254.0.0/16 range, and the port number will always be >1024.  HOWEVER,
-    // this is subject to change!  Do not make assumptions about these addresses,
-    // or your code might break in the future.  In particular, you should use
-    // functions such as  ISteamNetworkingUtils::IsFakeIP to determine if an IP
-    // address is a "fake" one used by this system.
-    //
+	// "FakeIP" system.
+	//
+	// A FakeIP is essentially a temporary, arbitrary identifier that
+	// happens to be a valid IPv4 address.  The purpose of this system is to make it
+	// easy to integrate with existing code that identifies hosts using IPv4 addresses.
+	// The FakeIP address will never actually be used to send or receive any packets
+	// on the Internet, it is strictly an identifier.
+	//
+	// FakeIP addresses are designed to (hopefully) pass through existing code as
+	// transparently as possible, while conflicting with "real" addresses that might
+	// be in use on networks (both the Internet and LANs) in the same code as little
+	// as possible.  At the time this comment is being written, they come from the
+	// 169.254.0.0/16 range, and the port number will always be >1024.  HOWEVER,
+	// this is subject to change!  Do not make assumptions about these addresses,
+	// or your code might break in the future.  In particular, you should use
+	// functions such as  ISteamNetworkingUtils::IsFakeIP to determine if an IP
+	// address is a "fake" one used by this system.
+	//
 
-    /// Begin asynchronous process of allocating a fake IPv4 address that other
-    /// peers can use to contact us via P2P.  IP addresses returned by this
-    /// function are globally unique for a given appid.
-    ///
-    /// nNumPorts is the numbers of ports you wish to reserve.  This is useful
-    /// for the same reason that listening on multiple UDP ports is useful for
-    /// different types of traffic.  Because these allocations come from a global
-    /// namespace, there is a relatively strict limit on the maximum number of
-    /// ports you may request.  (At the time of this writing, the limit is 4.)
-    /// The port assignments are *not* guaranteed to have any particular order
-    /// or relationship!  Do *not* assume they are contiguous, even though that
-    /// may often occur in practice.
-    ///
-    /// Returns false if a request was already in progress, true if a new request
-    /// was started.  A SteamNetworkingFakeIPResult_t will be posted when the request
-    /// completes.
-    ///
-    /// For gameservers, you *must* call this after initializing the SDK but before
-    /// beginning login.  Steam needs to know in advance that FakeIP will be used.
-    /// Everywhere your public IP would normally appear (such as the server browser) will be
-    /// replaced by the FakeIP, and the fake port at index 0.  The request is actually queued
-    /// until the logon completes, so you must not wait until the allocation completes
-    /// before logging in.  Except for trivial failures that can be detected locally
-    /// (e.g. invalid parameter), a SteamNetworkingFakeIPResult_t callback (whether success or
-    /// failure) will not be posted until after we have logged in.  Furthermore, it is assumed
-    /// that FakeIP allocation is essential for your application to function, and so failure
-    /// will not be reported until *several* retries have been attempted.  This process may
-    /// last several minutes.  It is *highly* recommended to treat failure as fatal.
-    ///
-    /// To communicate using a connection-oriented (TCP-style) API:
-    /// - Server creates a listen socket using CreateListenSocketP2PFakeIP
-    /// - Client connects using ConnectByIPAddress, passing in the FakeIP address.
-    /// - The connection will behave mostly like a P2P connection.  The identities
-    ///   that appear in SteamNetConnectionInfo_t will be the FakeIP identity until
-    ///   we know the real identity.  Then it will be the real identity.  If the
-    ///   SteamNetConnectionInfo_t::m_addrRemote is valid, it will be a real IPv4
-    ///   address of a NAT-punched connection.  Otherwise, it will not be valid.
-    /// 
-    /// To communicate using an ad-hoc sendto/recv from (UDP-style) API,
-    /// use CreateFakeUDPPort.
-	virtual bool BeginAsyncRequestFakeIP(int nNumPorts) = 0;
+	/// Begin asynchronous process of allocating a fake IPv4 address that other
+	/// peers can use to contact us via P2P.  IP addresses returned by this
+	/// function are globally unique for a given appid.
+	///
+	/// nNumPorts is the numbers of ports you wish to reserve.  This is useful
+	/// for the same reason that listening on multiple UDP ports is useful for
+	/// different types of traffic.  Because these allocations come from a global
+	/// namespace, there is a relatively strict limit on the maximum number of
+	/// ports you may request.  (At the time of this writing, the limit is 4.)
+	/// The port assignments are *not* guaranteed to have any particular order
+	/// or relationship!  Do *not* assume they are contiguous, even though that
+	/// may often occur in practice.
+	///
+	/// Returns false if a request was already in progress, true if a new request
+	/// was started.  A SteamNetworkingFakeIPResult_t will be posted when the request
+	/// completes.
+	///
+	/// For gameservers, you *must* call this after initializing the SDK but before
+	/// beginning login.  Steam needs to know in advance that FakeIP will be used.
+	/// Everywhere your public IP would normally appear (such as the server browser) will be
+	/// replaced by the FakeIP, and the fake port at index 0.  The request is actually queued
+	/// until the logon completes, so you must not wait until the allocation completes
+	/// before logging in.  Except for trivial failures that can be detected locally
+	/// (e.g. invalid parameter), a SteamNetworkingFakeIPResult_t callback (whether success or
+	/// failure) will not be posted until after we have logged in.  Furthermore, it is assumed
+	/// that FakeIP allocation is essential for your application to function, and so failure
+	/// will not be reported until *several* retries have been attempted.  This process may
+	/// last several minutes.  It is *highly* recommended to treat failure as fatal.
+	///
+	/// To communicate using a connection-oriented (TCP-style) API:
+	/// - Server creates a listen socket using CreateListenSocketP2PFakeIP
+	/// - Client connects using ConnectByIPAddress, passing in the FakeIP address.
+	/// - The connection will behave mostly like a P2P connection.  The identities
+	///   that appear in SteamNetConnectionInfo_t will be the FakeIP identity until
+	///   we know the real identity.  Then it will be the real identity.  If the
+	///   SteamNetConnectionInfo_t::m_addrRemote is valid, it will be a real IPv4
+	///   address of a NAT-punched connection.  Otherwise, it will not be valid.
+	/// 
+	/// To communicate using an ad-hoc sendto/recv from (UDP-style) API,
+	/// use CreateFakeUDPPort.
+	virtual bool BeginAsyncRequestFakeIP( int nNumPorts ) = 0;
 
 	/// Return info about the FakeIP and port(s) that we have been assigned,
 	/// if any.  idxFirstPort is currently reserved and must be zero.
 	/// Make sure and check SteamNetworkingFakeIPResult_t::m_eResult
-	virtual void GetFakeIP(int idxFirstPort, SteamNetworkingFakeIPResult_t* pInfo) = 0;
+	virtual void GetFakeIP( int idxFirstPort, SteamNetworkingFakeIPResult_t *pInfo ) = 0;
 
 	/// Create a listen socket that will listen for P2P connections sent
 	/// to our FakeIP.  A peer can initiate connections to this listen
@@ -875,7 +875,7 @@ public:
 	/// first port in the reservation.  You must call this only after calling
 	/// BeginAsyncRequestFakeIP.  However, you do not need to wait for the
 	/// request to complete before creating the listen socket.
-	virtual HSteamListenSocket CreateListenSocketP2PFakeIP(int idxFakePort, int nOptions, const SteamNetworkingConfigValue_t* pOptions) = 0;
+	virtual HSteamListenSocket CreateListenSocketP2PFakeIP( int idxFakePort, int nOptions, const SteamNetworkingConfigValue_t *pOptions ) = 0;
 
 	/// If the connection was initiated using the "FakeIP" system, then we
 	/// we can get an IP address for the remote host.  If the remote host had
@@ -892,7 +892,7 @@ public:
 	/// On failure, returns:
 	/// - k_EResultInvalidParam: invalid connection handle
 	/// - k_EResultIPNotFound: This connection wasn't made using FakeIP system
-	virtual EResult GetRemoteFakeIPForConnection(HSteamNetConnection hConn, SteamNetworkingIPAddr* pOutAddr) = 0;
+	virtual EResult GetRemoteFakeIPForConnection( HSteamNetConnection hConn, SteamNetworkingIPAddr *pOutAddr ) = 0;
 
 	/// Get an interface that can be used like a UDP port to send/receive
 	/// datagrams to a FakeIP address.  This is intended to make it easy
@@ -911,7 +911,7 @@ public:
 	/// pass -1.  In this case, a distinct object will be returned for each call.
 	/// When the peer receives packets sent from this interface, the peer will
 	/// assign a FakeIP from its own locally-controlled namespace.
-	virtual ISteamNetworkingFakeUDPPort* CreateFakeUDPPort(int idxFakeServerPort) = 0;
+	virtual ISteamNetworkingFakeUDPPort *CreateFakeUDPPort( int idxFakeServerPort ) = 0;
 
 protected:
 	~ISteamNetworkingSockets(); // Silence some warnings
@@ -923,29 +923,30 @@ protected:
 // Using standalone lib
 #ifdef STEAMNETWORKINGSOCKETS_STANDALONELIB
 
-static_assert(STEAMNETWORKINGSOCKETS_INTERFACE_VERSION[24] == '2', "Version mismatch");
-STEAMNETWORKINGSOCKETS_INTERFACE ISteamNetworkingSockets* SteamNetworkingSockets_LibV12();
-inline ISteamNetworkingSockets* SteamNetworkingSockets_Lib() { return SteamNetworkingSockets_LibV12(); }
+	static_assert( STEAMNETWORKINGSOCKETS_INTERFACE_VERSION[24] == '2', "Version mismatch" );
+	STEAMNETWORKINGSOCKETS_INTERFACE ISteamNetworkingSockets *SteamNetworkingSockets_LibV12();
+	inline ISteamNetworkingSockets *SteamNetworkingSockets_Lib() { return SteamNetworkingSockets_LibV12(); }
 
-STEAMNETWORKINGSOCKETS_INTERFACE ISteamNetworkingSockets* SteamGameServerNetworkingSockets_LibV12();
-inline ISteamNetworkingSockets* SteamGameServerNetworkingSockets_Lib() { return SteamGameServerNetworkingSockets_LibV12(); }
+	STEAMNETWORKINGSOCKETS_INTERFACE ISteamNetworkingSockets *SteamGameServerNetworkingSockets_LibV12();
+	inline ISteamNetworkingSockets *SteamGameServerNetworkingSockets_Lib() { return SteamGameServerNetworkingSockets_LibV12(); }
 
-#ifndef STEAMNETWORKINGSOCKETS_STEAMAPI
-inline ISteamNetworkingSockets* SteamNetworkingSockets() { return SteamNetworkingSockets_LibV12(); }
-inline ISteamNetworkingSockets* SteamGameServerNetworkingSockets() { return SteamGameServerNetworkingSockets_LibV12(); }
-#endif
+	#ifndef STEAMNETWORKINGSOCKETS_STEAMAPI
+		inline ISteamNetworkingSockets *SteamNetworkingSockets() { return SteamNetworkingSockets_LibV12(); }
+		inline ISteamNetworkingSockets *SteamGameServerNetworkingSockets() { return SteamGameServerNetworkingSockets_LibV12(); }
+	#endif
 #endif
 
 // Using Steamworks SDK
 #ifdef STEAMNETWORKINGSOCKETS_STEAMAPI
-
+#ifndef STEAM_API_EXPORTS
 	STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamNetworkingSockets *, SteamNetworkingSockets_SteamAPI, STEAMNETWORKINGSOCKETS_INTERFACE_VERSION );
 	STEAM_DEFINE_GAMESERVER_INTERFACE_ACCESSOR( ISteamNetworkingSockets *, SteamGameServerNetworkingSockets_SteamAPI, STEAMNETWORKINGSOCKETS_INTERFACE_VERSION );
 
 	#ifndef STEAMNETWORKINGSOCKETS_STANDALONELIB
-		//inline ISteamNetworkingSockets *SteamNetworkingSockets() { return SteamNetworkingSockets_SteamAPI(); }
-		//inline ISteamNetworkingSockets *SteamGameServerNetworkingSockets() { return SteamGameServerNetworkingSockets_SteamAPI(); }
+		inline ISteamNetworkingSockets *SteamNetworkingSockets() { return SteamNetworkingSockets_SteamAPI(); }
+		inline ISteamNetworkingSockets *SteamGameServerNetworkingSockets() { return SteamGameServerNetworkingSockets_SteamAPI(); }
 	#endif
+#endif
 #endif
 
 /// Callback struct used to notify when a connection has changed state

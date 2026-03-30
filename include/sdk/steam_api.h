@@ -19,8 +19,6 @@
 
 // Basic stuff
 #include "steam_api_common.h"
-#include "steamdatagram_tickets.h"
-#include "steamnetworkingfakeip.h"
 
 // All of the interfaces
 #include "isteamclient.h"
@@ -34,7 +32,6 @@
 #include "isteamremotestorage.h"
 #include "isteamscreenshots.h"
 #include "isteammusic.h"
-#include "isteammusicremote.h"
 #include "isteamhttp.h"
 #include "isteamcontroller.h"
 #include "isteamugc.h"
@@ -88,23 +85,27 @@ enum ESteamAPIInitResult
 // it will receive an example error message, in English, that explains the reason for the failure.
 //
 // Example usage:
-// 
+//
 //   SteamErrMsg errMsg;
 //   if ( SteamAPI_Init(&errMsg) != k_ESteamAPIInitResult_OK )
 //       FatalError( "Failed to init Steam.  %s", errMsg );
-inline ESteamAPIInitResult SteamAPI_InitEx(SteamErrMsg* pOutErrMsg);
+#if !defined( STEAM_API_EXPORTS )
+inline ESteamAPIInitResult SteamAPI_InitEx( SteamErrMsg *pOutErrMsg );
+#endif
 
 // See "Initializing the Steamworks SDK" above for how to choose an init method.
 // Returns true on success
-//inline bool SteamAPI_Init()
-//{
-	//return SteamAPI_InitEx(NULL) == k_ESteamAPIInitResult_OK;
-//}
+#if !defined( STEAM_API_EXPORTS )
+inline bool SteamAPI_Init()
+{
+	return SteamAPI_InitEx( NULL ) == k_ESteamAPIInitResult_OK;
+}
+#endif
 
 // See "Initializing the Steamworks SDK" above for how to choose an init method.
 // Same usage as SteamAPI_InitEx(), however does not verify ISteam* interfaces are
 // supported by the user's client and is exported from the dll
-S_API ESteamAPIInitResult S_CALLTYPE SteamAPI_InitFlat(SteamErrMsg* pOutErrMsg);
+S_API ESteamAPIInitResult S_CALLTYPE SteamAPI_InitFlat( SteamErrMsg *pOutErrMsg );
 
 // SteamAPI_Shutdown should be called during process shutdown if possible.
 S_API void S_CALLTYPE SteamAPI_Shutdown();
@@ -140,16 +141,6 @@ S_API void S_CALLTYPE SteamAPI_SetMiniDumpComment( const char *pchMsg );
 
 // SteamAPI_IsSteamRunning() returns true if Steam is currently running
 S_API bool S_CALLTYPE SteamAPI_IsSteamRunning();
-
-// Pumps out all the steam messages, calling registered callbacks.
-// NOT THREADSAFE - do not call from multiple threads simultaneously.
-S_API void Steam_RunCallbacks(HSteamPipe hSteamPipe, bool bGameServerCallbacks);
-
-// register the callback funcs to use to interact with the steam dll
-S_API void Steam_RegisterInterfaceFuncs(void* hModule);
-
-// returns the HSteamUser of the last user to dispatch a callback
-S_API HSteamUser Steam_GetHSteamUserCurrent();
 
 // returns the filename path of the current running Steam process, used if you need to load an explicit steam dll by name.
 // DEPRECATED - implementation is Windows only, and the path returned is a UTF-8 string which must be converted to UTF-16 for use with Win32 APIs
@@ -237,145 +228,23 @@ S_API void S_CALLTYPE SteamAPI_ManualDispatch_FreeLastCallback( HSteamPipe hStea
 /// only call this in a handler for SteamAPICallCompleted_t callback.
 S_API bool S_CALLTYPE SteamAPI_ManualDispatch_GetAPICallResult( HSteamPipe hSteamPipe, SteamAPICall_t hSteamAPICall, void *pCallback, int cubCallback, int iCallbackExpected, bool *pbFailed );
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-//
-// CSteamAPIContext
-//
-// Deprecated!  This is not necessary any more.  Please use the global accessors directly
-//
-//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-
-//#ifndef STEAM_API_EXPORTS
-
-// Deprecated!  Use the global accessors directly
-inline bool CSteamAPIContext::Init()
-{
-	HSteamUser hSteamUser = SteamAPI_GetHSteamUser();
-	HSteamPipe hSteamPipe = SteamAPI_GetHSteamPipe();
-	if (!hSteamPipe)
-		return false;
-
-	m_pSteamClient = (ISteamClient*)SteamInternal_CreateInterface(STEAMCLIENT_INTERFACE_VERSION);
-	if (!m_pSteamClient)
-		return false;
-
-	m_pSteamUser = m_pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, STEAMUSER_INTERFACE_VERSION);
-	if (!m_pSteamUser)
-		return false;
-
-	m_pSteamFriends = m_pSteamClient->GetISteamFriends(hSteamUser, hSteamPipe, STEAMFRIENDS_INTERFACE_VERSION);
-	if (!m_pSteamFriends)
-		return false;
-
-	m_pSteamUtils = m_pSteamClient->GetISteamUtils(hSteamPipe, STEAMUTILS_INTERFACE_VERSION);
-	if (!m_pSteamUtils)
-		return false;
-
-	m_pSteamMatchmaking = m_pSteamClient->GetISteamMatchmaking(hSteamUser, hSteamPipe, STEAMMATCHMAKING_INTERFACE_VERSION);
-	if (!m_pSteamMatchmaking)
-		return false;
-
-	m_pSteamGameSearch = m_pSteamClient->GetISteamGameSearch(hSteamUser, hSteamPipe, STEAMGAMESEARCH_INTERFACE_VERSION);
-	if (!m_pSteamGameSearch)
-		return false;
-
-	m_pSteamMatchmakingServers = m_pSteamClient->GetISteamMatchmakingServers(hSteamUser, hSteamPipe, STEAMMATCHMAKINGSERVERS_INTERFACE_VERSION);
-	if (!m_pSteamMatchmakingServers)
-		return false;
-
-	m_pSteamUserStats = m_pSteamClient->GetISteamUserStats(hSteamUser, hSteamPipe, STEAMUSERSTATS_INTERFACE_VERSION);
-	if (!m_pSteamUserStats)
-		return false;
-
-	m_pSteamApps = m_pSteamClient->GetISteamApps(hSteamUser, hSteamPipe, STEAMAPPS_INTERFACE_VERSION);
-	if (!m_pSteamApps)
-		return false;
-
-	m_pSteamNetworking = m_pSteamClient->GetISteamNetworking(hSteamUser, hSteamPipe, STEAMNETWORKING_INTERFACE_VERSION);
-	if (!m_pSteamNetworking)
-		return false;
-
-	m_pSteamRemoteStorage = m_pSteamClient->GetISteamRemoteStorage(hSteamUser, hSteamPipe, STEAMREMOTESTORAGE_INTERFACE_VERSION);
-	if (!m_pSteamRemoteStorage)
-		return false;
-
-	m_pSteamScreenshots = m_pSteamClient->GetISteamScreenshots(hSteamUser, hSteamPipe, STEAMSCREENSHOTS_INTERFACE_VERSION);
-	if (!m_pSteamScreenshots)
-		return false;
-
-	m_pSteamHTTP = m_pSteamClient->GetISteamHTTP(hSteamUser, hSteamPipe, STEAMHTTP_INTERFACE_VERSION);
-	if (!m_pSteamHTTP)
-		return false;
-
-	m_pController = m_pSteamClient->GetISteamController(hSteamUser, hSteamPipe, STEAMCONTROLLER_INTERFACE_VERSION);
-	if (!m_pController)
-		return false;
-
-	m_pSteamUGC = m_pSteamClient->GetISteamUGC(hSteamUser, hSteamPipe, STEAMUGC_INTERFACE_VERSION);
-	if (!m_pSteamUGC)
-		return false;
-
-	m_pSteamMusic = m_pSteamClient->GetISteamMusic(hSteamUser, hSteamPipe, STEAMMUSIC_INTERFACE_VERSION);
-	if (!m_pSteamMusic)
-		return false;
-
-	m_pSteamMusicRemote = m_pSteamClient->GetISteamMusicRemote(hSteamUser, hSteamPipe, STEAMMUSICREMOTE_INTERFACE_VERSION);
-	if (!m_pSteamMusicRemote)
-		return false;
-
-	m_pSteamHTMLSurface = m_pSteamClient->GetISteamHTMLSurface(hSteamUser, hSteamPipe, STEAMHTMLSURFACE_INTERFACE_VERSION);
-	if (!m_pSteamHTMLSurface)
-		return false;
-
-	m_pSteamInventory = m_pSteamClient->GetISteamInventory(hSteamUser, hSteamPipe, STEAMINVENTORY_INTERFACE_VERSION);
-	if (!m_pSteamInventory)
-		return false;
-
-	m_pSteamVideo = m_pSteamClient->GetISteamVideo(hSteamUser, hSteamPipe, STEAMVIDEO_INTERFACE_VERSION);
-	if (!m_pSteamVideo)
-		return false;
-
-	m_pSteamParentalSettings = m_pSteamClient->GetISteamParentalSettings(hSteamUser, hSteamPipe, STEAMPARENTALSETTINGS_INTERFACE_VERSION);
-	if (!m_pSteamParentalSettings)
-		return false;
-
-	m_pSteamInput = m_pSteamClient->GetISteamInput(hSteamUser, hSteamPipe, STEAMINPUT_INTERFACE_VERSION);
-	if (!m_pSteamInput)
-		return false;
-
-	m_pSteamParties = m_pSteamClient->GetISteamParties(hSteamUser, hSteamPipe, STEAMPARTIES_INTERFACE_VERSION);
-	if (!m_pSteamParties)
-		return false;
-
-	m_pSteamRemotePlay = m_pSteamClient->GetISteamRemotePlay(hSteamUser, hSteamPipe, STEAMREMOTEPLAY_INTERFACE_VERSION);
-	if (!m_pSteamRemotePlay)
-		return false;
-
-	return true;
-}
-
-//#endif
-
 // Internal implementation of SteamAPI_InitEx.  This is done in a way that checks
 // all of the versions of interfaces from headers being compiled into this code.
-S_API ESteamAPIInitResult S_CALLTYPE SteamInternal_SteamAPI_Init(const char* pszInternalCheckInterfaceVersions, SteamErrMsg* pOutErrMsg);
-inline ESteamAPIInitResult SteamAPI_InitEx(SteamErrMsg* pOutErrMsg)
+S_API ESteamAPIInitResult S_CALLTYPE SteamInternal_SteamAPI_Init( const char *pszInternalCheckInterfaceVersions, SteamErrMsg *pOutErrMsg );
+inline ESteamAPIInitResult SteamAPI_InitEx( SteamErrMsg *pOutErrMsg )
 {
-	const char* pszInternalCheckInterfaceVersions =
+	const char *pszInternalCheckInterfaceVersions = 
 		STEAMUTILS_INTERFACE_VERSION "\0"
 		STEAMNETWORKINGUTILS_INTERFACE_VERSION "\0"
-
 		STEAMAPPS_INTERFACE_VERSION "\0"
 		STEAMCONTROLLER_INTERFACE_VERSION "\0"
 		STEAMFRIENDS_INTERFACE_VERSION "\0"
-		STEAMGAMESEARCH_INTERFACE_VERSION "\0"
 		STEAMHTMLSURFACE_INTERFACE_VERSION "\0"
 		STEAMHTTP_INTERFACE_VERSION "\0"
 		STEAMINPUT_INTERFACE_VERSION "\0"
 		STEAMINVENTORY_INTERFACE_VERSION "\0"
 		STEAMMATCHMAKINGSERVERS_INTERFACE_VERSION "\0"
 		STEAMMATCHMAKING_INTERFACE_VERSION "\0"
-		STEAMMUSICREMOTE_INTERFACE_VERSION "\0"
 		STEAMMUSIC_INTERFACE_VERSION "\0"
 		STEAMNETWORKINGMESSAGES_INTERFACE_VERSION "\0"
 		STEAMNETWORKINGSOCKETS_INTERFACE_VERSION "\0"
@@ -392,7 +261,7 @@ inline ESteamAPIInitResult SteamAPI_InitEx(SteamErrMsg* pOutErrMsg)
 
 		"\0";
 
-	return SteamInternal_SteamAPI_Init(pszInternalCheckInterfaceVersions, pOutErrMsg);
+	return SteamInternal_SteamAPI_Init( pszInternalCheckInterfaceVersions, pOutErrMsg );
 }
 
 #endif // STEAM_API_H

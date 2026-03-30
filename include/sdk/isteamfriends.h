@@ -105,7 +105,7 @@ struct FriendGameInfo_t
 
 // special values for FriendGameInfo_t::m_usQueryPort
 const uint16 k_usFriendGameInfoQueryPort_NotInitialized = 0xFFFF;		// We haven't asked the GS for this query port's actual value yet.  Was #define QUERY_PORT_NOT_INITIALIZED in older versions of Steamworks SDK.
-const uint16 k_usFriendGameInfoQueryPort_Error = 0xFFFE;		// We were unable to get the query port for this server.  Was #define QUERY_PORT_ERROR in older versions of Steamworks SDK.
+const uint16 k_usFriendGameInfoQueryPort_Error          = 0xFFFE;		// We were unable to get the query port for this server.  Was #define QUERY_PORT_ERROR in older versions of Steamworks SDK.
 
 // maximum number of characters in a user's name. Two flavors; one for UTF-8 and one for UTF-16.
 // The UTF-8 version has to be very generous to accomodate characters that get large when encoded
@@ -114,21 +114,6 @@ enum
 {
 	k_cchPersonaNameMax = 128,
 	k_cwchPersonaNameMax = 32,
-};
-
-//-----------------------------------------------------------------------------
-// Purpose: user restriction flags
-//-----------------------------------------------------------------------------
-enum EUserRestriction
-{
-	k_nUserRestrictionNone		= 0,	// no known chat/content restriction
-	k_nUserRestrictionUnknown	= 1,	// we don't know yet (user offline)
-	k_nUserRestrictionAnyChat	= 2,	// user is not allowed to (or can't) send/recv any chat
-	k_nUserRestrictionVoiceChat	= 4,	// user is not allowed to (or can't) send/recv voice chat
-	k_nUserRestrictionGroupChat	= 8,	// user is not allowed to (or can't) send/recv group chat
-	k_nUserRestrictionRating	= 16,	// user is too young according to rating in current region
-	k_nUserRestrictionGameInvites	= 32,	// user cannot send or recv game invites (e.g. mobile)
-	k_nUserRestrictionTrading	= 64,	// user cannot participate in trading (console, mobile)
 };
 
 // size limit on chat room or member metadata
@@ -166,26 +151,26 @@ enum EActivateGameOverlayToWebPageMode
 //-----------------------------------------------------------------------------
 enum ECommunityProfileItemType
 {
-	k_ECommunityProfileItemType_AnimatedAvatar = 0,
-	k_ECommunityProfileItemType_AvatarFrame = 1,
-	k_ECommunityProfileItemType_ProfileModifier = 2,
-	k_ECommunityProfileItemType_ProfileBackground = 3,
+	k_ECommunityProfileItemType_AnimatedAvatar		 = 0,
+	k_ECommunityProfileItemType_AvatarFrame			 = 1,
+	k_ECommunityProfileItemType_ProfileModifier		 = 2,
+	k_ECommunityProfileItemType_ProfileBackground	 = 3,
 	k_ECommunityProfileItemType_MiniProfileBackground = 4,
 };
 enum ECommunityProfileItemProperty
 {
-	k_ECommunityProfileItemProperty_ImageSmall = 0, // string
-	k_ECommunityProfileItemProperty_ImageLarge = 1, // string
-	k_ECommunityProfileItemProperty_InternalName = 2, // string
-	k_ECommunityProfileItemProperty_Title = 3, // string
-	k_ECommunityProfileItemProperty_Description = 4, // string
-	k_ECommunityProfileItemProperty_AppID = 5, // uint32
-	k_ECommunityProfileItemProperty_TypeID = 6, // uint32
-	k_ECommunityProfileItemProperty_Class = 7, // uint32
-	k_ECommunityProfileItemProperty_MovieWebM = 8, // string
-	k_ECommunityProfileItemProperty_MovieMP4 = 9, // string
+	k_ECommunityProfileItemProperty_ImageSmall	   = 0, // string
+	k_ECommunityProfileItemProperty_ImageLarge	   = 1, // string
+	k_ECommunityProfileItemProperty_InternalName   = 2, // string
+	k_ECommunityProfileItemProperty_Title		   = 3, // string
+	k_ECommunityProfileItemProperty_Description	   = 4, // string
+	k_ECommunityProfileItemProperty_AppID		   = 5, // uint32
+	k_ECommunityProfileItemProperty_TypeID		   = 6, // uint32
+	k_ECommunityProfileItemProperty_Class		   = 7, // uint32
+	k_ECommunityProfileItemProperty_MovieWebM	   = 8, // string
+	k_ECommunityProfileItemProperty_MovieMP4	   = 9, // string
 	k_ECommunityProfileItemProperty_MovieWebMSmall = 10, // string
-	k_ECommunityProfileItemProperty_MovieMP4Small = 11, // string
+	k_ECommunityProfileItemProperty_MovieMP4Small  = 11, // string
 };
 
 //-----------------------------------------------------------------------------
@@ -440,19 +425,21 @@ public:
 	virtual void ActivateGameOverlayInviteDialogConnectString( const char *pchConnectString ) = 0;
 
 	// Steam Community items equipped by a user on their profile
-    // You can register for EquippedProfileItemsChanged_t to know when a friend has changed their equipped profile items
-	STEAM_CALL_RESULT(EquippedProfileItems_t)
-	virtual SteamAPICall_t RequestEquippedProfileItems(CSteamID steamID) = 0;
-	virtual bool BHasEquippedProfileItem(CSteamID steamID, ECommunityProfileItemType itemType) = 0;
-	virtual const char* GetProfileItemPropertyString(CSteamID steamID, ECommunityProfileItemType itemType, ECommunityProfileItemProperty prop) = 0;
-	virtual uint32 GetProfileItemPropertyUint(CSteamID steamID, ECommunityProfileItemType itemType, ECommunityProfileItemProperty prop) = 0;
+	// You can register for EquippedProfileItemsChanged_t to know when a friend has changed their equipped profile items
+	STEAM_CALL_RESULT( EquippedProfileItems_t )
+	virtual SteamAPICall_t RequestEquippedProfileItems( CSteamID steamID ) = 0;
+	virtual bool BHasEquippedProfileItem( CSteamID steamID, ECommunityProfileItemType itemType ) = 0;
+	virtual const char *GetProfileItemPropertyString( CSteamID steamID, ECommunityProfileItemType itemType, ECommunityProfileItemProperty prop ) = 0;
+	virtual uint32 GetProfileItemPropertyUint( CSteamID steamID, ECommunityProfileItemType itemType, ECommunityProfileItemProperty prop ) = 0;
 };
 
 #define STEAMFRIENDS_INTERFACE_VERSION "SteamFriends018"
 
 // Global interface accessor
-//inline ISteamFriends *SteamFriends();
-//STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamFriends *, SteamFriends, STEAMFRIENDS_INTERFACE_VERSION );
+#ifndef STEAM_API_EXPORTS
+inline ISteamFriends *SteamFriends();
+STEAM_DEFINE_USER_INTERFACE_ACCESSOR( ISteamFriends *, SteamFriends, STEAMFRIENDS_INTERFACE_VERSION );
+#endif
 
 // callbacks
 #if defined( VALVE_CALLBACK_PACK_SMALL )
@@ -680,17 +667,6 @@ struct FriendsEnumerateFollowingList_t
 	int32 m_nTotalResultCount;
 };
 
-//-----------------------------------------------------------------------------
-// Purpose: reports the result of an attempt to change the user's persona name
-//-----------------------------------------------------------------------------
-struct SetPersonaNameResponse_t
-{
-	enum { k_iCallback = k_iSteamFriendsCallbacks + 47 };
-
-	bool m_bSuccess; // true if name change succeeded completely.
-	bool m_bLocalSuccess; // true if name change was retained locally.  (We might not have been able to communicate with Steam)
-	EResult m_result; // detailed result code
-};
 
 //-----------------------------------------------------------------------------
 // Purpose: Invoked when the status of unread messages changes

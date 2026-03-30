@@ -254,34 +254,6 @@ S_API const char* S_CALLTYPE SteamAPI_SteamNetworkingIPAddrRender_c_str(SteamNet
 {
 	return self->c_str();
 }
-S_API void S_CALLTYPE SteamAPI_SteamDatagramHostedAddress_Clear(SteamDatagramHostedAddress* self)
-{
-	return self->Clear();
-}
-S_API SteamNetworkingPOPID S_CALLTYPE SteamAPI_SteamDatagramHostedAddress_GetPopID(SteamDatagramHostedAddress* self)
-{
-	return self->GetPopID();
-}
-S_API void S_CALLTYPE SteamAPI_SteamDatagramHostedAddress_SetDevAddress(SteamDatagramHostedAddress* self, uint32 nIP, uint16 nPort, SteamNetworkingPOPID popid)
-{
-	return self->SetDevAddress(nIP, nPort, popid);
-}
-S_API void S_CALLTYPE SteamAPI_ISteamNetworkingFakeUDPPort_DestroyFakeUDPPort(ISteamNetworkingFakeUDPPort *self)
-{
-	return self->DestroyFakeUDPPort();
-}
-S_API int S_CALLTYPE SteamAPI_ISteamNetworkingFakeUDPPort_ReceiveMessages(ISteamNetworkingFakeUDPPort* self, SteamNetworkingMessage_t** ppOutMessages, int nMaxMessages)
-{
-	return self->ReceiveMessages(ppOutMessages, nMaxMessages);
-}
-S_API void S_CALLTYPE SteamAPI_ISteamNetworkingFakeUDPPort_ScheduleCleanup(ISteamNetworkingFakeUDPPort* self, const SteamNetworkingIPAddr& remoteAddress)
-{
-	return self->ScheduleCleanup(remoteAddress);
-}
-S_API EResult S_CALLTYPE SteamAPI_ISteamNetworkingFakeUDPPort_SendMessageToFakeIP(ISteamNetworkingFakeUDPPort* self, const SteamNetworkingIPAddr& remoteAddress, const void* pData, uint32 cbData, int nSendFlags)
-{
-	return self->SendMessageToFakeIP(remoteAddress, pData, cbData, nSendFlags);
-}
 S_API HSteamPipe S_CALLTYPE SteamAPI_ISteamClient_CreateSteamPipe(intptr_t instancePtr)
 {
 	if (g_bServerReady == true)

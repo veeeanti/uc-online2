@@ -91,9 +91,6 @@ public:
 	// user screenshots
 	virtual ISteamScreenshots *GetISteamScreenshots( HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
 
-	// game search
-	virtual ISteamGameSearch *GetISteamGameSearch( HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
-
 	// Deprecated. Applications should use SteamAPI_RunCallbacks() or SteamGameServer_RunCallbacks() instead.
 	STEAM_PRIVATE_API( virtual void RunFrame() = 0; )
 
@@ -120,12 +117,9 @@ public:
 
 	// Exposes the ISteamUGC interface
 	virtual ISteamUGC *GetISteamUGC( HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
-	
+
 	// Music Player
 	virtual ISteamMusic *GetISteamMusic( HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion ) = 0;
-
-	// Music Player Remote
-	virtual ISteamMusicRemote *GetISteamMusicRemote(HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion) = 0;
 
 	// html page display
 	virtual ISteamHTMLSurface *GetISteamHTMLSurface(HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char *pchVersion) = 0;
@@ -156,17 +150,17 @@ public:
 	STEAM_PRIVATE_API( virtual void DestroyAllInterfaces() = 0; )
 
 };
-#define STEAMCLIENT_INTERFACE_VERSION		"SteamClient021"
+#define STEAMCLIENT_INTERFACE_VERSION		"SteamClient023"
 
 #ifndef STEAM_API_EXPORTS
 
 // Global ISteamClient interface accessor
-//inline ISteamClient *SteamClient();
-//STEAM_DEFINE_INTERFACE_ACCESSOR( ISteamClient *, SteamClient, SteamInternal_CreateInterface( STEAMCLIENT_INTERFACE_VERSION ), "global", STEAMCLIENT_INTERFACE_VERSION );
+inline ISteamClient *SteamClient();
+STEAM_DEFINE_INTERFACE_ACCESSOR( ISteamClient *, SteamClient, SteamInternal_CreateInterface( STEAMCLIENT_INTERFACE_VERSION ), "global", STEAMCLIENT_INTERFACE_VERSION );
 
 // The internal ISteamClient used for the gameserver interface.
 // (This is actually the same thing.  You really shouldn't need to access any of this stuff directly.)
-//inline ISteamClient *SteamGameServerClient() { return SteamClient(); }
+inline ISteamClient *SteamGameServerClient() { return SteamClient(); }
 
 #endif
 
