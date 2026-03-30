@@ -29,9 +29,9 @@ inline int getpid() { return (int)GetCurrentProcessId(); }
 #define PlatGetModuleHandleW(name) GetModuleHandleW(name)
 
 typedef SRWLOCK PlatLock;
-#define PlatLockInit(lock) InitializeSRWLock(&(lock))
-#define PlatLockAcquire(lock) AcquireSRWLockExclusive(&(lock))
-#define PlatLockRelease(lock) ReleaseSRWLockExclusive(&(lock))
+inline void PlatLockInit(PlatLock& lock) { InitializeSRWLock(&lock); }
+inline void PlatLockAcquire(PlatLock& lock) { AcquireSRWLockExclusive(&lock); }
+inline void PlatLockRelease(PlatLock& lock) { ReleaseSRWLockExclusive(&lock); }
 
 #else
 
@@ -79,9 +79,9 @@ typedef SRWLOCK PlatLock;
 
 // ---- Lock abstraction ----
 typedef std::mutex PlatLock;
-#define PlatLockInit(lock) /* mutex self-initializes */
-#define PlatLockAcquire(lock) (lock).lock()
-#define PlatLockRelease(lock) (lock).unlock()
+inline void PlatLockInit(PlatLock& lock) { /* mutex self-initializes */ (void)lock; }
+inline void PlatLockAcquire(PlatLock& lock) { lock.lock(); }
+inline void PlatLockRelease(PlatLock& lock) { lock.unlock(); }
 
 // ---- Windows type stubs ----
 #ifndef FALSE
