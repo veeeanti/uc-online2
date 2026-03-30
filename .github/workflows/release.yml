@@ -32,8 +32,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist/windows/x64 dist/windows/x86
-          cp build64/Release/steam_api64.dll dist/windows/x64/
-          cp build32/Release/steam_api.dll dist/windows/x86/
+          cp build64/x64/steam_api64.dll dist/windows/x64/
+          cp build32/x86/steam_api.dll dist/windows/x86/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
