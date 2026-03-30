@@ -1,10 +1,11 @@
 #pragma once
 
-#include <Windows.h>
-#include <Shlwapi.h>
+#include "platform.h"
 #include <vector>
 #include <algorithm>
 #include <string>
+
+#ifdef _WIN32
 
 class CDLLLoader
 {
@@ -139,3 +140,199 @@ public:
 
 	size_t LoadedCount() const { return m_Modules.size(); }
 };
+
+#else // Linux / macOS
+
+// Simple INI file parser for non-Windows platforms
+static std::string IniReadString(const char* iniPath, const char* section, const char* key, const char* defaultVal)
+{
+	FILE* f = fopen(iniPath, "r");
+	if (!f) return defaultVal;
+
+	char line[512];
+	bool inSection = false;
+	size_t sectionLen = strlen(section);
+	size_t keyLen = strlen(key);
+
+	while (fgets(line, sizeof(line), f))
+	{
+		// Trim leading whitespace
+		char* p = line;
+		while (*p == ' ' || *p == '\t') p++;
+
+		// Remove trailing newline
+		char* nl = strchr(p, '\n');
+		if (nl) *nl = '\0';
+		nl = strchr(p, '\r');
+		if (nl) *nl = '\0';
+
+		// Skip empty lines and comments
+		if (*p == '\0' || *p == ';' || *p == '#') continue;
+
+		// Section header
+		if (*p == '[')
+		{
+			p++;
+			char* end = strchr(p, ']');
+			if (end)
+			{
+				*end = '\0';
+				inSection = (_stricmp(p, section) == 0);
+			}
+			continue;
+		}
+
+		// Key=value within our section
+		if (inSection)
+		{
+			char* eq = strchr(p, '=');
+			if (eq)
+			{
+				*eq = '\0';
+				char* k = p;
+				char* v = eq + 1;
+
+				// Trim key trailing whitespace
+				char* kEnd = k + strlen(k) - 1;
+				while (kEnd > k && (*kEnd == ' ' || *kEnd == '\t')) { *kEnd = '\0'; kEnd--; }
+
+				// Trim value leading whitespace
+				while (*v == ' ' || *v == '\t') v++;
+
+				if (_stricmp(k, key) == 0)
+				{
+					std::string result(v);
+					fclose(f);
+					return result;
+				}
+			}
+		}
+	}
+
+	fclose(f);
+	return defaultVal;
+}
+
+class CDLLLoader
+{
+private:
+	std::vector<PLAT_MODULE_T> m_Modules;
+	char m_IniPath[MAX_PATH];
+	uint32 m_AppId;
+
+public:
+	CDLLLoader() : m_AppId(480) { m_IniPath[0] = '\0'; }
+	~CDLLLoader() { UnloadAll(); }
+
+	void ReadConfig()
+	{
+		std::string exeDir = PlatGetExeDir();
+		if (exeDir.empty()) return;
+
+		snprintf(m_IniPath, MAX_PATH, "%s%cunion-crax.ini", exeDir.c_str(), PLAT_SEP);
+
+		if (access(m_IniPath, R_OK) != 0)
+			m_IniPath[0] = '\0';
+	}
+
+	uint32 GetAppId()
+	{
+		if (m_IniPath[0] == '\0')
+			return 480;
+
+		std::string val = IniReadString(m_IniPath, "Settings", "AppId", "480");
+		if (val.empty()) return 480;
+
+		uint32 id = (uint32)strtoul(val.c_str(), nullptr, 10);
+		return (id == 0) ? 480 : id;
+	}
+
+	void LoadPlugins()
+	{
+		if (m_IniPath[0] == '\0')
+			return;
+
+		std::string exeDir = PlatGetExeDir();
+		std::string folderName = IniReadString(m_IniPath, "Settings", "PluginsFolder", "");
+
+		if (folderName.empty())
+			return;
+
+		std::string pluginDir = exeDir + PLAT_SEP + folderName;
+
+		struct stat st;
+		if (stat(pluginDir.c_str(), &st) != 0 || !S_ISDIR(st.st_mode))
+			return;
+
+		std::vector<std::string> names;
+		std::vector<std::string> paths;
+
+		DIR* dir = opendir(pluginDir.c_str());
+		if (!dir) return;
+
+		struct dirent* entry;
+		while ((entry = readdir(dir)) != nullptr)
+		{
+			std::string name(entry->d_name);
+
+			// Skip . and .. and non-.so/.dylib files
+			if (name == "." || name == "..") continue;
+
+#if defined(__linux__)
+			if (name.size() < 4 || name.substr(name.size() - 3) != ".so") continue;
+#elif defined(__APPLE__)
+			if (name.size() < 8 || name.substr(name.size() - 6) != ".dylib") continue;
+#endif
+
+			std::string fullPath = pluginDir + PLAT_SEP + name;
+			names.push_back(name);
+			paths.push_back(fullPath);
+		}
+		closedir(dir);
+
+		// Sort alphabetically (selection sort like original)
+		for (size_t i = 0; i < names.size(); i++)
+		{
+			size_t minIdx = i;
+			for (size_t j = i + 1; j < names.size(); j++)
+			{
+				if (_stricmp(names[j].c_str(), names[minIdx].c_str()) < 0)
+					minIdx = j;
+			}
+
+			if (minIdx != i)
+			{
+				std::swap(names[i], names[minIdx]);
+				std::swap(paths[i], paths[minIdx]);
+			}
+		}
+
+		for (size_t i = 0; i < names.size(); i++)
+		{
+			PLAT_MODULE_T hMod = PlatLoadLibraryA(paths[i].c_str());
+			if (hMod)
+			{
+				m_Modules.push_back(hMod);
+				UCOLOG("[UCOnline2] Loaded plugin: %s", names[i].c_str());
+			}
+			else
+			{
+				UCOLOG("[UCOnline2] Failed to load plugin: %s (%s)", names[i].c_str(), dlerror());
+			}
+		}
+	}
+
+	void UnloadAll()
+	{
+		for (size_t i = 0; i < m_Modules.size(); i++)
+		{
+			if (m_Modules[i])
+				PlatFreeLibrary(m_Modules[i]);
+		}
+		m_Modules.clear();
+	}
+
+	size_t LoadedCount() const { return m_Modules.size(); }
+};
+
+#endif // !_WIN32

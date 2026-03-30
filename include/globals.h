@@ -1,8 +1,7 @@
 #pragma once
 
-#include <Windows.h>
+#include "platform.h"
 
-#define STEAM_API_EXPORTS
 #include "include/sdk/steam_api.h"
 #include "include/sdk/steamclientpublic.h"
 #include "include/sdk/steam_gameserver.h"
@@ -167,7 +166,7 @@ public:
 
 // ============================================================
 
-extern HMODULE g_ClientModule;
+extern PLAT_MODULE_T g_ClientModule;
 extern HSteamPipe g_ClientPipe;
 extern HSteamUser g_ClientUser;
 extern ISteamClient* g_pSteamClient;
@@ -177,9 +176,9 @@ extern ISteamController* g_pControllerForCallbacks;
 extern ISteamInput* g_pInputForCallbacks;
 extern CSteamAPIContext g_ClientCtx;
 extern bool g_bClientReady;
-extern SRWLOCK g_CtxLock;
+extern PlatLock g_CtxLock;
 
-extern HMODULE g_ServerModule;
+extern PLAT_MODULE_T g_ServerModule;
 extern HSteamPipe g_ServerPipe;
 extern HSteamUser g_ServerUser;
 extern ISteamClient* g_ServerClient;
@@ -205,7 +204,7 @@ extern bool g_bTryCatch;
 extern int g_DispatchMode;
 extern char g_InstallPath[MAX_PATH];
 extern bool g_bHaveInstallPath;
-extern SRWLOCK g_CallbackLock;
+extern PlatLock g_CallbackLock;
 extern uint32 g_ForcedAppId;
 
 typedef void* (S_CALLTYPE* Fn_CreateInterface)(const char* pName, int* pReturnCode);
@@ -239,6 +238,6 @@ extern uintp g_CtxCounter;
 
 void UCOLOG(const char* fmt, ...);
 void UCOColor(WORD color, const char* text);
-void* InitSteamClient(HMODULE* phModule, bool bLocal, const char* iface);
-void LoadBreakpadSymbols(HMODULE hMod);
+void* InitSteamClient(PLAT_MODULE_T* phModule, bool bLocal, const char* iface);
+void LoadBreakpadSymbols(PLAT_MODULE_T hMod);
 void UpdateMinidumpSteamID(uint64 sid);

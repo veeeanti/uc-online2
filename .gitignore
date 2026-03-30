@@ -1,2 +1,10 @@
 build/
+build32/
 .vs/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.vcxproj.user
+*.sln
+compile_commands.json

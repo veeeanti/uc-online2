@@ -6,8 +6,11 @@
 
 #ifdef _DEBUG
 
-#include <Windows.h>
+#include "platform.h"
 #include <string>
+
+#ifdef _WIN32
+
 #include <DbgHelp.h>
 
 typedef BOOL(WINAPI* Fn_MiniDumpWriteDump)(HANDLE hProcess, DWORD ProcessId, HANDLE hFile,
@@ -36,4 +39,25 @@ public:
 	void WriteDump(DWORD exceptionCode, _EXCEPTION_POINTERS* pExceptionInfo);
 };
 
-#endif
+#else // Linux / macOS
+
+// Dump handler is a no-op on non-Windows (breakpad handles crashes on Linux/Mac)
+class CDumpHandler
+{
+public:
+	CDumpHandler() : m_bReady(false) {}
+	~CDumpHandler() {}
+
+	bool IsReady() { return false; }
+	void SetComment(const wchar_t* comment) { (void)comment; }
+	size_t GetCommentByteSize() { return 0; }
+	const wchar_t* GetComment() { return L""; }
+	void ClearComment() {}
+	void WriteDump(DWORD exceptionCode, void* pExceptionInfo) {
+		(void)exceptionCode; (void)pExceptionInfo;
+	}
+};
+
+#endif // _WIN32
+
+#endif // _DEBUG

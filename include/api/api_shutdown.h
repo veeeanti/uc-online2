@@ -45,8 +45,8 @@ S_API void S_CALLTYPE SteamAPI_Shutdown()
 		g_pSteamClient = nullptr;
 		g_DispatchMode = 3;
 
-		FreeLibrary(g_ClientModule);
-		g_ClientModule = nullptr;
+		PlatFreeLibrary(g_ClientModule);
+		g_ClientModule = PLAT_INVALID_MODULE;
 
 		g_pfnBreakpadWriteDump = nullptr;
 		g_pfnBreakpadSetComment = nullptr;
@@ -108,8 +108,8 @@ S_API void S_CALLTYPE SteamGameServer_Shutdown()
 		g_ServerClient = nullptr;
 		g_DispatchMode = 3;
 
-		FreeLibrary(g_ServerModule);
-		g_ServerModule = nullptr;
+		PlatFreeLibrary(g_ServerModule);
+		g_ServerModule = PLAT_INVALID_MODULE;
 
 		g_pfnBreakpadWriteDump = nullptr;
 		g_pfnBreakpadSetComment = nullptr;

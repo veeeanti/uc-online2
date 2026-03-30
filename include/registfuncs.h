@@ -1,6 +1,8 @@
 #pragma once
 
-#include <Windows.h>
+#include "platform.h"
+
+#ifdef _WIN32
 
 LSTATUS GetRegistryDWORD(const char* cszPath, const char* cszKey, DWORD& dwValue)
 {
@@ -31,3 +33,23 @@ LSTATUS GetRegistryString(const char* cszPath, const char* cszKey, char* szStrin
 
 	return GetRegKey;
 }
+
+#else // Linux / macOS
+
+// Registry functions are Windows-only. On Linux/Mac, Steam config is read from
+// filesystem paths. These stubs return errors; the actual logic is in api_client.h.
+
+#define ERROR_SUCCESS 0
+#define ERROR_FILE_NOT_FOUND 2
+
+inline int GetRegistryDWORD(const char*, const char*, DWORD&)
+{
+	return ERROR_FILE_NOT_FOUND;
+}
+
+inline int GetRegistryString(const char*, const char*, char*, unsigned int)
+{
+	return ERROR_FILE_NOT_FOUND;
+}
+
+#endif

@@ -1,4 +1,4 @@
-name: Build and Release DLLs
+name: Build and Release
 
 on:
   push:
@@ -10,68 +10,114 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
-    name: Build and Release
+  build-windows:
+    name: Build (Windows)
     runs-on: windows-2022
 
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
 
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Build x86 version (steam_api.dll)
-        run: msbuild uc_online2.vcxproj -p:Configuration=Release -p:Platform=Win32 -m
-
-      - name: Build x64 version (steam_api64.dll)
-        run: msbuild uc_online2.vcxproj -p:Configuration=Release -p:Platform=x64 -m
-
-      - name: Verify build outputs
-        shell: pwsh
+      - name: Build 64-bit
         run: |
-          $files = @(
-            "build/x86/steam_api.dll",
-            "build/x64/steam_api64.dll"
-          )
+          cmake -B build64 -A x64
+          cmake --build build64 --config Release
 
-          foreach ($file in $files) {
-            if (-not (Test-Path $file)) {
-              throw "Missing expected build output: $file"
-            }
-          }
-
-      - name: Package release zip
-        shell: pwsh
+      - name: Build 32-bit
         run: |
-          $packageRoot = "dist/uc-online2-${{ github.ref_name }}"
-          $archivePath = "$packageRoot.zip"
+          cmake -B build32 -A Win32
+          cmake --build build32 --config Release
 
-          New-Item -ItemType Directory -Path "$packageRoot/x86" -Force | Out-Null
-          New-Item -ItemType Directory -Path "$packageRoot/x64" -Force | Out-Null
+      - name: Package outputs
+        shell: bash
+        run: |
+          mkdir -p dist/windows/x64 dist/windows/x86
+          cp build64/Release/steam_api64.dll dist/windows/x64/
+          cp build32/Release/steam_api.dll dist/windows/x86/
 
-          Copy-Item "build/x86/steam_api.dll" "$packageRoot/x86/steam_api.dll"
-          Copy-Item "build/x64/steam_api64.dll" "$packageRoot/x64/steam_api64.dll"
-
-          if (Test-Path $archivePath) {
-            Remove-Item $archivePath -Force
-          }
-
-          Compress-Archive -Path $packageRoot -DestinationPath $archivePath
-
-      - name: Upload workflow artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: uc-online2-${{ github.ref_name }}
-          path: dist/uc-online2-${{ github.ref_name }}.zip
-          if-no-files-found: error
+          name: uc-online2-windows-${{ github.ref_name }}
+          path: dist/windows/
+
+  build-linux:
+    name: Build (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Package outputs
+        run: |
+          mkdir -p dist/linux/x64
+          cp build/x64/libsteam_api64.so dist/linux/x64/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: uc-online2-linux-${{ github.ref_name }}
+          path: dist/linux/
+
+  build-macos:
+    name: Build (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Package outputs
+        run: |
+          mkdir -p dist/macos/x64
+          cp build/x64/libsteam_api64.dylib dist/macos/x64/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: uc-online2-macos-${{ github.ref_name }}
+          path: dist/macos/
+
+  release:
+    needs: [build-windows, build-linux, build-macos]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Package release archives
+        run: |
+          cd artifacts
+          for platform_dir in */; do
+            platform=$(basename "$platform_dir" | sed 's/uc-online2-//;s/-v.*//')
+            archive="../uc-online2-${{ github.ref_name }}-${platform}.zip"
+            zip -r "$archive" "$platform_dir"
+            echo "Created: $archive"
+          done
 
       - name: Publish release assets
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          files: dist/uc-online2-${{ github.ref_name }}.zip
+          files: "*.zip"
           generate_release_notes: true
-          fail_on_unmatched_files: true
+          fail_on_unmatched_files: false

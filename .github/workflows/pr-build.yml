@@ -4,33 +4,73 @@ on:
   pull_request:
 
 jobs:
-  build:
-    name: Build DLLs
+  build-windows:
+    name: Build (Windows)
     runs-on: windows-2022
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up MSBuild
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Build Win32 DLL
-        run: msbuild uc_online2.vcxproj -p:Configuration=Release -p:Platform=Win32 -m
-
-      - name: Build x64 DLL
-        run: msbuild uc_online2.vcxproj -p:Configuration=Release -p:Platform=x64 -m
-
-      - name: Verify build outputs
-        shell: pwsh
+      - name: Build 64-bit
         run: |
-          $files = @(
-            "build/x86/steam_api.dll",
-            "build/x64/steam_api64.dll"
-          )
+          cmake -B build64 -A x64
+          cmake --build build64 --config Release
 
-          foreach ($file in $files) {
-            if (-not (Test-Path $file)) {
-              throw "Missing expected build output: $file"
-            }
-          }
+      - name: Build 32-bit
+        run: |
+          cmake -B build32 -A Win32
+          cmake --build build32 --config Release
+
+      - name: Verify outputs
+        shell: bash
+        run: |
+          for file in build64/Release/steam_api64.dll build32/Release/steam_api.dll; do
+            if [ ! -f "$file" ]; then
+              echo "::error::Missing: $file"
+              exit 1
+            fi
+            echo "Found: $file ($(stat --format=%s "$file") bytes)"
+          done
+
+  build-linux:
+    name: Build (Linux)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Verify output
+        run: |
+          if [ ! -f build/x64/libsteam_api64.so ]; then
+            echo "::error::Missing build output"
+            exit 1
+          fi
+          echo "Found: build/x64/libsteam_api64.so ($(stat --format=%s build/x64/libsteam_api64.so) bytes)"
+
+  build-macos:
+    name: Build (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Verify output
+        run: |
+          if [ ! -f build/x64/libsteam_api64.dylib ]; then
+            echo "::error::Missing build output"
+            exit 1
+          fi
+          echo "Found: build/x64/libsteam_api64.dylib ($(stat -f%z build/x64/libsteam_api64.dylib) bytes)"

@@ -303,9 +303,9 @@ S_API void S_CALLTYPE SteamAPI_RunCallbacks()
 		return;
 	}
 
-	AcquireSRWLockExclusive(&g_CallbackLock);
+	PlatLockAcquire(g_CallbackLock);
 	Steam_RunCallbacks(g_ClientPipe, false);
-	ReleaseSRWLockExclusive(&g_CallbackLock);
+	PlatLockRelease(g_CallbackLock);
 }
 
 S_API void S_CALLTYPE SteamAPI_SetTryCatchCallbacks(bool bEnable)
@@ -318,7 +318,7 @@ S_API HSteamUser S_CALLTYPE Steam_GetHSteamUserCurrent()
 {
 	UCOLOG("[UCOnline2] Steam_GetHSteamUserCurrent\r\n");
 
-	return ::Steam_GetHSteamUserCurrent();
+	return g_ClientUser;
 }
 
 S_API void S_CALLTYPE Steam_RegisterInterfaceFuncs(void* hModule)
@@ -350,9 +350,9 @@ S_API void S_CALLTYPE Steam_RegisterInterfaceFuncs(void* hModule)
 	}
 
 	CCallbackDispatcher* pDisp = GetDispatcher();
-	pDisp->m_pfnBGetCallback = (Fn_BGetCallback)GetProcAddress((HMODULE)hModule, "Steam_BGetCallback");
-	pDisp->m_pfnFreeLastCallback = (Fn_FreeLastCallback)GetProcAddress((HMODULE)hModule, "Steam_FreeLastCallback");
-	pDisp->m_pfnGetAPICallResult = (Fn_GetAPICallResult)GetProcAddress((HMODULE)hModule, "Steam_GetAPICallResult");
+	pDisp->m_pfnBGetCallback = (Fn_BGetCallback)PlatGetProcAddress((PLAT_MODULE_T)hModule, "Steam_BGetCallback");
+	pDisp->m_pfnFreeLastCallback = (Fn_FreeLastCallback)PlatGetProcAddress((PLAT_MODULE_T)hModule, "Steam_FreeLastCallback");
+	pDisp->m_pfnGetAPICallResult = (Fn_GetAPICallResult)PlatGetProcAddress((PLAT_MODULE_T)hModule, "Steam_GetAPICallResult");
 }
 
 S_API void S_CALLTYPE Steam_RunCallbacks(HSteamPipe hPipe, bool bServer)

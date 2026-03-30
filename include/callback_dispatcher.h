@@ -1,5 +1,6 @@
 #pragma once
 
+#include "platform.h"
 #include <map>
 
 typedef bool (S_CALLTYPE* Fn_BGetCallback)(HSteamPipe hPipe, CallbackMsg_t* pMsg);

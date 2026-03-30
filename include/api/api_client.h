@@ -25,10 +25,10 @@ uint32 CountRegisteredCallbacks(int iCallbackId)
 
 static void WarnMissingInterface(HSteamPipe hPipe, const char* iface)
 {
-	HMODULE hMod = g_ClientModule;
+	PLAT_MODULE_T hMod = g_ClientModule;
 	if (g_ServerModule) hMod = g_ServerModule;
 
-	g_pfnNotifyMissing = (Fn_NotifyMissing)GetProcAddress(hMod, "Steam_NotifyMissingInterface");
+	g_pfnNotifyMissing = (Fn_NotifyMissing)PlatGetProcAddress(hMod, "Steam_NotifyMissingInterface");
 	if (g_pfnNotifyMissing)
 		g_pfnNotifyMissing(hPipe, iface);
 }
@@ -61,6 +61,7 @@ static void WriteAppIDFile()
 		fclose(f);
 	}
 
+#if defined(_WIN32)
 	char exePath[MAX_PATH] = { 0 };
 	if (GetModuleFileNameA(nullptr, exePath, MAX_PATH) != 0)
 	{
@@ -77,6 +78,19 @@ static void WriteAppIDFile()
 			}
 		}
 	}
+#else
+	std::string exeDir = PlatGetExeDir();
+	if (!exeDir.empty())
+	{
+		std::string fullPath = exeDir + "/steam_appid.txt";
+		f = fopen(fullPath.c_str(), "wb");
+		if (f)
+		{
+			fwrite(buf, 1, strlen(buf), f);
+			fclose(f);
+		}
+	}
+#endif
 }
 
 S_API HSteamPipe S_CALLTYPE GetHSteamPipe()
@@ -110,6 +124,7 @@ S_API const char* S_CALLTYPE SteamAPI_GetSteamInstallPath()
 	if (g_bHaveInstallPath)
 		return g_InstallPath;
 
+#if defined(_WIN32)
 	DWORD ActiveProcessPID = 0;
 	LSTATUS GetPID = GetRegistryDWORD("Software\\Valve\\Steam\\ActiveProcess", "pid", ActiveProcessPID);
 
@@ -141,9 +156,7 @@ S_API const char* S_CALLTYPE SteamAPI_GetSteamInstallPath()
 					if (FixPath == TRUE)
 					{
 						g_bHaveInstallPath = true;
-
 						UCOLOG("[UCOnline2] Steam Install Path --> %s\r\n", g_InstallPath);
-
 						return g_InstallPath;
 					}
 					else
@@ -170,6 +183,40 @@ S_API const char* S_CALLTYPE SteamAPI_GetSteamInstallPath()
 	{
 		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] Unable to get the PID of the Steam process (SteamAPI_GetSteamInstallPath)!\r\n");
 	}
+
+#else // Linux / macOS
+	// Check common Steam installation paths
+	const char* home = getenv("HOME");
+	if (home)
+	{
+		const char* paths[] = {
+#if defined(__linux__)
+			".steam/steam/ubuntu12_64",
+			".steam/steam/ubuntu12_32",
+			".local/share/Steam/ubuntu12_64",
+			".local/share/Steam/ubuntu12_32",
+			".steam/debian-installation/ubuntu12_64",
+#elif defined(__APPLE__)
+			"Library/Application Support/Steam/steam.app/Contents/MacOS",
+			"Library/Application Support/Steam",
+#endif
+			nullptr
+		};
+
+		for (int i = 0; paths[i] != nullptr; i++)
+		{
+			std::string fullPath = std::string(home) + "/" + paths[i];
+			struct stat st;
+			if (stat(fullPath.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+			{
+				snprintf(g_InstallPath, MAX_PATH, "%s", fullPath.c_str());
+				g_bHaveInstallPath = true;
+				UCOLOG("[UCOnline2] Steam Install Path --> %s\r\n", g_InstallPath);
+				return g_InstallPath;
+			}
+		}
+	}
+#endif
 
 	return "UCOnline2_InvalidPath";
 }
@@ -221,10 +268,10 @@ S_API ESteamAPIInitResult S_CALLTYPE SteamInternal_SteamAPI_Init(const char* psz
 	{
 		if (pszVersions)
 		{
-			HMODULE hMod = g_ClientModule;
+			PLAT_MODULE_T hMod = g_ClientModule;
 			if (g_ServerModule) hMod = g_ServerModule;
 
-			g_pfnIsKnownInterface = (Fn_IsKnownInterface)GetProcAddress(hMod, "Steam_IsKnownInterface");
+			g_pfnIsKnownInterface = (Fn_IsKnownInterface)PlatGetProcAddress(hMod, "Steam_IsKnownInterface");
 			if (!g_pfnIsKnownInterface)
 			{
 				SteamAPI_Shutdown();
@@ -247,10 +294,11 @@ S_API ESteamAPIInitResult S_CALLTYPE SteamInternal_SteamAPI_Init(const char* psz
 
 			g_pSteamClient->Set_SteamAPI_CCheckCallbackRegisteredInProcess(CountRegisteredCallbacks);
 
+#if defined(_WIN32)
 			#if defined(_M_IX86)
-				HMODULE hOverlay = GetModuleHandleW(L"GameOverlayRenderer.dll");
+				PLAT_MODULE_T hOverlay = GetModuleHandleW(L"GameOverlayRenderer.dll");
 			#elif defined(_M_AMD64)
-				HMODULE hOverlay = GetModuleHandleW(L"GameOverlayRenderer64.dll");
+				PLAT_MODULE_T hOverlay = GetModuleHandleW(L"GameOverlayRenderer64.dll");
 			#endif
 
 			if (g_ForcedAppId != 769 && !hOverlay)
@@ -267,6 +315,7 @@ S_API ESteamAPIInitResult S_CALLTYPE SteamInternal_SteamAPI_Init(const char* psz
 					LoadLibraryExA(overlayPath, nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
 				}
 			}
+#endif // _WIN32
 
 			ISteamUser* pUser = (ISteamUser*)g_pSteamClient->GetISteamUser(g_ClientUser, g_ClientPipe, STEAMUSER_INTERFACE_VERSION);
 			if (pUser)
@@ -355,6 +404,7 @@ S_API bool S_CALLTYPE SteamAPI_IsSteamRunning()
 {
 	UCOLOG("[UCOnline2] SteamAPI_IsSteamRunning");
 
+#if defined(_WIN32)
 	DWORD ActiveProcessPID = 0;
 	LSTATUS GetPID = GetRegistryDWORD("Software\\Valve\\Steam\\ActiveProcess", "pid", ActiveProcessPID);
 
@@ -387,6 +437,61 @@ S_API bool S_CALLTYPE SteamAPI_IsSteamRunning()
 	{
 		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] Unable to get the PID of the Steam process (SteamAPI_IsSteamRunning)!\r\n");
 	}
+
+#elif defined(__linux__)
+	// Check for Steam PID file
+	const char* home = getenv("HOME");
+	if (home)
+	{
+		std::string pidFile = std::string(home) + "/.steam/steam.pid";
+		FILE* f = fopen(pidFile.c_str(), "r");
+		if (f)
+		{
+			char buf[32] = {0};
+			if (fgets(buf, sizeof(buf), f))
+			{
+				pid_t pid = (pid_t)atoi(buf);
+				if (pid > 0 && PlatIsProcessRunning(pid))
+				{
+					fclose(f);
+					return true;
+				}
+			}
+			fclose(f);
+		}
+
+		// Also check /tmp/steam.pid
+		pidFile = "/tmp/steam.pid";
+		f = fopen(pidFile.c_str(), "r");
+		if (f)
+		{
+			char buf[32] = {0};
+			if (fgets(buf, sizeof(buf), f))
+			{
+				pid_t pid = (pid_t)atoi(buf);
+				if (pid > 0 && PlatIsProcessRunning(pid))
+				{
+					fclose(f);
+					return true;
+				}
+			}
+			fclose(f);
+		}
+	}
+#elif defined(__APPLE__)
+	// Check if Steam process is running via pgrep
+	FILE* pipe = popen("pgrep -x Steam 2>/dev/null", "r");
+	if (pipe)
+	{
+		char buf[32] = {0};
+		if (fgets(buf, sizeof(buf), pipe))
+		{
+			pclose(pipe);
+			return true;
+		}
+		pclose(pipe);
+	}
+#endif
 
 	return false;
 }

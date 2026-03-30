@@ -19,7 +19,7 @@ void UpdateMinidumpSteamID(uint64 sid)
 		g_pfnBreakpadSetSteamID(sid);
 }
 
-void LoadBreakpadSymbols(HMODULE hMod)
+void LoadBreakpadSymbols(PLAT_MODULE_T hMod)
 {
 	UCOLOG("[UCOnline2] LoadBreakpadSymbols\r\n");
 
@@ -29,7 +29,7 @@ void LoadBreakpadSymbols(HMODULE hMod)
 		return;
 	}
 
-	HMODULE hTarget = hMod;
+	PLAT_MODULE_T hTarget = hMod;
 	if (!hTarget)
 	{
 		hTarget = g_ClientModule;
@@ -44,19 +44,19 @@ void LoadBreakpadSymbols(HMODULE hMod)
 
 	UCOLOG("[UCOnline2] Loading breakpad functions from steamclient\r\n");
 
-	g_pfnBreakpadWriteDump = (Fn_BreakpadWriteDump)GetProcAddress(hTarget, "Breakpad_SteamWriteMiniDumpUsingExceptionInfoWithBuildId");
+	g_pfnBreakpadWriteDump = (Fn_BreakpadWriteDump)PlatGetProcAddress(hTarget, "Breakpad_SteamWriteMiniDumpUsingExceptionInfoWithBuildId");
 	if (!g_pfnBreakpadWriteDump) return;
 
-	g_pfnBreakpadSetComment = (Fn_BreakpadSetComment)GetProcAddress(hTarget, "Breakpad_SteamWriteMiniDumpSetComment");
+	g_pfnBreakpadSetComment = (Fn_BreakpadSetComment)PlatGetProcAddress(hTarget, "Breakpad_SteamWriteMiniDumpSetComment");
 	if (!g_pfnBreakpadSetComment) return;
 
-	g_pfnBreakpadSetSteamID = (Fn_BreakpadSetSteamID)GetProcAddress(hTarget, "Breakpad_SteamSetSteamID");
+	g_pfnBreakpadSetSteamID = (Fn_BreakpadSetSteamID)PlatGetProcAddress(hTarget, "Breakpad_SteamSetSteamID");
 	if (!g_pfnBreakpadSetSteamID) return;
 
-	g_pfnBreakpadSetAppID = (Fn_BreakpadSetAppID)GetProcAddress(hTarget, "Breakpad_SteamSetAppID");
+	g_pfnBreakpadSetAppID = (Fn_BreakpadSetAppID)PlatGetProcAddress(hTarget, "Breakpad_SteamSetAppID");
 	if (!g_pfnBreakpadSetAppID) return;
 
-	g_pfnBreakpadInit = (Fn_BreakpadInit)GetProcAddress(hTarget, "Breakpad_SteamMiniDumpInit");
+	g_pfnBreakpadInit = (Fn_BreakpadInit)PlatGetProcAddress(hTarget, "Breakpad_SteamMiniDumpInit");
 	if (!g_pfnBreakpadInit) return;
 
 	UCOLOG("[UCOnline2] Initializing breakpad minidump system\r\n");
@@ -77,7 +77,7 @@ S_API void S_CALLTYPE SteamAPI_SetBreakpadAppID(uint32 appId)
 	}
 
 	if (!g_pfnBreakpadSetAppID)
-		LoadBreakpadSymbols(nullptr);
+		LoadBreakpadSymbols(PLAT_INVALID_MODULE);
 
 	if (g_pfnBreakpadSetAppID)
 		g_pfnBreakpadSetAppID(g_BreakpadAppID);
@@ -89,7 +89,7 @@ S_API void S_CALLTYPE SteamAPI_SetMiniDumpComment(const char* comment)
 
 	if (comment && strlen(comment) > 0)
 	{
-		#ifdef _DEBUG
+#if defined(_WIN32) && defined(_DEBUG)
 		if (g_pDumpHandler && g_pDumpHandler->IsReady())
 		{
 			g_pDumpHandler->ClearComment();
@@ -105,10 +105,10 @@ S_API void S_CALLTYPE SteamAPI_SetMiniDumpComment(const char* comment)
 				delete[] wComment;
 			}
 		}
-		#endif
+#endif
 
 		if (!g_pfnBreakpadSetComment)
-			LoadBreakpadSymbols(nullptr);
+			LoadBreakpadSymbols(PLAT_INVALID_MODULE);
 
 		if (g_pfnBreakpadSetComment)
 			g_pfnBreakpadSetComment(comment);
@@ -133,10 +133,19 @@ S_API void S_CALLTYPE SteamAPI_UseBreakpadCrashHandler(const char* ver, const ch
 	g_BreakpadCtx = ctx;
 	g_BreakpadCallback = cb;
 
+#if defined(_WIN32)
 	SYSTEMTIME st = { 0 };
 	GetLocalTime(&st);
 	_snprintf_s(g_BreakpadTimestamp, sizeof(g_BreakpadTimestamp), _TRUNCATE, "%04d%02d%02d%02d%02d%02d",
 		st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+#else
+	time_t now = time(nullptr);
+	struct tm tm_buf;
+	localtime_r(&now, &tm_buf);
+	snprintf(g_BreakpadTimestamp, sizeof(g_BreakpadTimestamp), "%04d%02d%02d%02d%02d%02d",
+		tm_buf.tm_year + 1900, tm_buf.tm_mon + 1, tm_buf.tm_mday,
+		tm_buf.tm_hour, tm_buf.tm_min, tm_buf.tm_sec);
+#endif
 }
 
 S_API void S_CALLTYPE SteamAPI_WriteMiniDump(uint32 code, void* info, uint32 buildId)
@@ -145,16 +154,16 @@ S_API void S_CALLTYPE SteamAPI_WriteMiniDump(uint32 code, void* info, uint32 bui
 
 	if (info)
 	{
-		#ifdef _DEBUG
+#if defined(_WIN32) && defined(_DEBUG)
 		if (g_pDumpHandler && g_pDumpHandler->IsReady())
 		{
 			g_pDumpHandler->WriteDump(code, (_EXCEPTION_POINTERS*)info);
 			g_pDumpHandler->ClearComment();
 		}
-		#endif
+#endif
 
 		if (!g_pfnBreakpadWriteDump)
-			LoadBreakpadSymbols(nullptr);
+			LoadBreakpadSymbols(PLAT_INVALID_MODULE);
 
 		if (g_pfnBreakpadWriteDump)
 			g_pfnBreakpadWriteDump(code, info, buildId);

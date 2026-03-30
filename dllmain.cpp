@@ -1,11 +1,4 @@
-#include <Windows.h>
-#include <Shlwapi.h>
-#include <new.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
-
-#define STEAM_API_EXPORTS
+#include "platform.h"
 
 #include "include/sdk/steam_api.h"
 #include "include/sdk/steamclientpublic.h"
@@ -31,7 +24,7 @@
 // Global variable definitions
 // ============================================================
 
-HMODULE g_ClientModule = nullptr;
+PLAT_MODULE_T g_ClientModule = PLAT_INVALID_MODULE;
 HSteamPipe g_ClientPipe = 0;
 HSteamUser g_ClientUser = 0;
 ISteamClient* g_pSteamClient = nullptr;
@@ -41,9 +34,9 @@ ISteamController* g_pControllerForCallbacks = nullptr;
 ISteamInput* g_pInputForCallbacks = nullptr;
 CSteamAPIContext g_ClientCtx;
 bool g_bClientReady = false;
-SRWLOCK g_CtxLock;
+PlatLock g_CtxLock;
 
-HMODULE g_ServerModule = nullptr;
+PLAT_MODULE_T g_ServerModule = PLAT_INVALID_MODULE;
 HSteamPipe g_ServerPipe = 0;
 HSteamUser g_ServerUser = 0;
 ISteamClient* g_ServerClient = nullptr;
@@ -69,7 +62,7 @@ bool g_bTryCatch = false;
 int g_DispatchMode = 0;
 char g_InstallPath[MAX_PATH] = { 0 };
 bool g_bHaveInstallPath = false;
-SRWLOCK g_CallbackLock;
+PlatLock g_CallbackLock;
 uint32 g_ForcedAppId = 480;
 
 Fn_CreateInterface g_pfnCreateInterface = nullptr;
@@ -97,15 +90,15 @@ S_API void* S_CALLTYPE SteamInternal_ContextInit(void* pData)
 	char* pBase = (char*)pData;
 	#if defined(_M_IX86)
 		if (*pCounter == g_CtxCounter) return pBase + 8;
-		AcquireSRWLockExclusive(&g_CtxLock);
+		PlatLockAcquire(g_CtxLock);
 		if (*pCounter != g_CtxCounter) { void(*pFn)(void*) = (void(*)(void*))pArr[0]; pFn(pBase + 8); *pCounter = g_CtxCounter; }
-		ReleaseSRWLockExclusive(&g_CtxLock);
+		PlatLockRelease(g_CtxLock);
 		return pBase + 8;
-	#elif defined(_M_AMD64)
+	#elif defined(_M_AMD64) || defined(__x86_64__) || defined(__aarch64__) || defined(__LP64__)
 		if (*pCounter == g_CtxCounter) return pBase + 16;
-		AcquireSRWLockExclusive(&g_CtxLock);
+		PlatLockAcquire(g_CtxLock);
 		if (*pCounter != g_CtxCounter) { void(*pFn)(void*) = (void(*)(void*))pArr[0]; pFn(pBase + 16); *pCounter = g_CtxCounter; }
-		ReleaseSRWLockExclusive(&g_CtxLock);
+		PlatLockRelease(g_CtxLock);
 		return pBase + 16;
 	#endif
 }
@@ -116,6 +109,7 @@ S_API void* S_CALLTYPE SteamInternal_ContextInit(void* pData)
 
 #ifdef _DEBUG
 
+#if defined(_WIN32)
 static void UCOLogImpl(const char* fmt, va_list args)
 {
 	char msg[2048] = { 0 };
@@ -142,7 +136,38 @@ static void UCOLogImpl(const char* fmt, va_list args)
 
 	fclose(f);
 }
+#else // Linux / macOS
+static void UCOLogImpl(const char* fmt, va_list args)
+{
+	char msg[2048] = { 0 };
+	vsnprintf(msg, sizeof(msg), fmt, args);
+
+	const char* logPath = "/tmp/uc_online2.log";
+
+	FILE* f = fopen(logPath, "a");
+	if (!f) return;
+
+	time_t now = time(nullptr);
+	struct tm tm_buf;
+#if defined(_WIN32)
+	localtime_s(&tm_buf, &now);
+#else
+	localtime_r(&now, &tm_buf);
 #endif
+
+	fprintf(f, "[%04d-%02d-%02d %02d:%02d:%02d] %s",
+		tm_buf.tm_year + 1900, tm_buf.tm_mon + 1, tm_buf.tm_mday,
+		tm_buf.tm_hour, tm_buf.tm_min, tm_buf.tm_sec, msg);
+
+	size_t msgLen = strlen(msg);
+	if (msgLen == 0 || msg[msgLen - 1] != '\n')
+		fputs("\n", f);
+
+	fclose(f);
+}
+#endif // platform
+
+#endif // _DEBUG
 
 void UCOLOG(const char* fmt, ...)
 {
@@ -168,18 +193,20 @@ void UCOColor(WORD color, const char* text)
 // InitSteamClient
 // ============================================================
 
-void* InitSteamClient(HMODULE* phMod, bool bLocal, const char* iface)
+void* InitSteamClient(PLAT_MODULE_T* phMod, bool bLocal, const char* iface)
 {
 	g_pUtilsForCallbacks = nullptr;
 	g_pControllerForCallbacks = nullptr;
 	g_pInputForCallbacks = nullptr;
 
-	if (!phMod || !iface) return nullptr;
+	if (!phMod || !iface) return PLAT_INVALID_MODULE;
 
-	*phMod = nullptr;
+	*phMod = PLAT_INVALID_MODULE;
 
-	char dllPath[MAX_PATH] = { 0 };
 	const char* installDir = SteamAPI_GetSteamInstallPath();
+
+#if defined(_WIN32)
+	char dllPath[MAX_PATH] = { 0 };
 
 	if (_stricmp(installDir, "UCOnline2_InvalidPath") == 0)
 	{
@@ -226,12 +253,70 @@ void* InitSteamClient(HMODULE* phMod, bool bLocal, const char* iface)
 		}
 	}
 
-	g_pfnCreateInterface = (Fn_CreateInterface)GetProcAddress(*phMod, "CreateInterface");
+#else // Linux / macOS
+
+	if (_stricmp(installDir, "UCOnline2_InvalidPath") == 0)
+	{
+		if (!bLocal) return PLAT_INVALID_MODULE;
+	}
+
+	if (SteamAPI_IsSteamRunning())
+	{
+#if defined(__x86_64__) || defined(__aarch64__) || defined(__LP64__)
+		{
+			std::string soPath = std::string(installDir) + "/steamclient64.so";
+			*phMod = PlatLoadLibraryA(soPath.c_str());
+			if (!*phMod) {
+				soPath = std::string(installDir) + "/steamclient.so";
+				*phMod = PlatLoadLibraryA(soPath.c_str());
+			}
+		}
+#else
+		{
+			std::string soPath = std::string(installDir) + "/steamclient.so";
+			*phMod = PlatLoadLibraryA(soPath.c_str());
+		}
+#endif
+
+		if (!*phMod)
+			UCOColor(0, "[UCOnline2] Failed to load steamclient library");
+	}
+	else
+	{
+		UCOColor(0, "[UCOnline2] Steam is not running");
+	}
+
+	if (!*phMod)
+	{
+		if (!bLocal)
+		{
+			UCOColor(0, "[UCOnline2] No Steam instance and bLocal is false");
+			return PLAT_INVALID_MODULE;
+		}
+
+#if defined(__x86_64__) || defined(__aarch64__) || defined(__LP64__)
+		*phMod = PlatLoadLibraryA("steamclient.so");
+		if (!*phMod)
+			*phMod = PlatLoadLibraryA("steamclient64.so");
+#else
+		*phMod = PlatLoadLibraryA("steamclient.so");
+#endif
+
+		if (!*phMod)
+		{
+			UCOColor(0, "[UCOnline2] Cannot find steamclient library");
+			return PLAT_INVALID_MODULE;
+		}
+	}
+
+#endif // !_WIN32
+
+	g_pfnCreateInterface = (Fn_CreateInterface)PlatGetProcAddress(*phMod, "CreateInterface");
 
 	if (g_pfnCreateInterface)
 	{
 		g_pSteamClientSafe = (ISteamClient*)g_pfnCreateInterface("SteamClient023", nullptr);
-		g_pfnReleaseThreadLocal = (Fn_ReleaseThreadLocal)GetProcAddress(*phMod, "Steam_ReleaseThreadLocalMemory");
+		g_pfnReleaseThreadLocal = (Fn_ReleaseThreadLocal)PlatGetProcAddress(*phMod, "Steam_ReleaseThreadLocalMemory");
 		g_CtxCounter++;
 
 		return g_pfnCreateInterface(iface, nullptr);
@@ -239,66 +324,82 @@ void* InitSteamClient(HMODULE* phMod, bool bLocal, const char* iface)
 	else
 	{
 		UCOColor(0, "[UCOnline2] CreateInterface not found in steamclient");
-		FreeLibrary(*phMod);
-		*phMod = nullptr;
+		PlatFreeLibrary(*phMod);
+		*phMod = PLAT_INVALID_MODULE;
 	}
 
-	return nullptr;
+	return PLAT_INVALID_MODULE;
 }
 
 // ============================================================
-// DllMain
+// Platform-specific initialization
 // ============================================================
+
+static void UCO_Init()
+{
+	UCOLOG("[UCOnline2] Initializing");
+
+	static CDLLLoader s_PluginLoader;
+	s_PluginLoader.ReadConfig();
+	g_ForcedAppId = s_PluginLoader.GetAppId();
+
+	SetAppIDEnv();
+	WriteAppIDFile();
+
+#if defined(_WIN32)
+	char dllPath[MAX_PATH] = { 0 };
+	HMODULE hSelf = PlatGetModuleHandleW(L"steam_api.dll");
+	if (!hSelf) hSelf = PlatGetModuleHandleW(L"steam_api64.dll");
+	DWORD len = GetModuleFileNameA(hSelf, dllPath, sizeof(dllPath));
+	if (len > 0)
+	{
+		UCOLOG("[UCOnline2] DLL Path: %s", dllPath);
+	}
+#else
+	std::string selfPath = PlatGetModulePath((void*)&UCO_Init);
+	if (!selfPath.empty())
+	{
+		UCOLOG("[UCOnline2] Library Path: %s", selfPath.c_str());
+	}
+#endif
+
+	UCOLOG("[UCOnline2] PID: %u", (unsigned int)getpid());
+
+	PlatLockInit(g_CtxLock);
+	PlatLockInit(g_CallbackLock);
+
+#ifdef _DEBUG
+	g_pDumpHandler = new CDumpHandler();
+#endif
+
+	s_PluginLoader.LoadPlugins();
+	UCOLOG("[UCOnline2] %zu plugin(s) loaded", s_PluginLoader.LoadedCount());
+}
+
+// ============================================================
+// Entry point
+// ============================================================
+
+#if defined(_WIN32)
 
 BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
-		UCOLOG("[UCOnline2] DllMain -> DLL_PROCESS_ATTACH");
-
-		static CDLLLoader s_PluginLoader;
-		s_PluginLoader.ReadConfig();
-		g_ForcedAppId = s_PluginLoader.GetAppId();
-
-		SetAppIDEnv();
-		WriteAppIDFile();
-
-		char dllPath[MAX_PATH] = { 0 };
-		DWORD len = GetModuleFileNameA(hModule, dllPath, sizeof(dllPath));
-
-		if (len == 0)
-			return FALSE;
-
-		if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
-			return FALSE;
-
-		UCOLOG("[UCOnline2] DLL Path: %s", dllPath);
-
-		#if defined(_M_IX86)
-			if (!StrStrIA(dllPath, "steam_api.dll"))
-				UCOLOG("[UCOnline2] Warning: not named steam_api.dll");
-		#elif defined(_M_AMD64)
-			if (!StrStrIA(dllPath, "steam_api64.dll"))
-				UCOLOG("[UCOnline2] Warning: not named steam_api64.dll");
-		#endif
-
-		UCOLOG("[UCOnline2] PID: %lu", GetCurrentProcessId());
-		UCOLOG("[UCOnline2] Thread: %lu", GetCurrentThreadId());
-
-		InitializeSRWLock(&g_CtxLock);
-		InitializeSRWLock(&g_CallbackLock);
-
-		#ifdef _DEBUG
-		g_pDumpHandler = new CDumpHandler();
-		#endif
-
-		s_PluginLoader.LoadPlugins();
-
-		UCOLOG("[UCOnline2] %zu plugin(s) loaded", s_PluginLoader.LoadedCount());
+		UCO_Init();
 	}
 
 	return TRUE;
 }
+
+#elif defined(__linux__) || defined(__APPLE__)
+
+__attribute__((constructor)) static void LibraryConstructor()
+{
+	UCO_Init();
+}
+
+#endif
 
 // ============================================================
 // CCallbackDispatcher
@@ -641,10 +742,11 @@ CCallbackDispatcher* GetDispatcher()
 }
 
 // ============================================================
-// CDumpHandler (_DEBUG only)
+// CDumpHandler (_DEBUG only, Windows only)
 // ============================================================
 
 #ifdef _DEBUG
+#ifdef _WIN32
 
 #include <DbgHelp.h>
 
@@ -773,4 +875,5 @@ void CDumpHandler::WriteDump(DWORD exceptionCode, _EXCEPTION_POINTERS* pExceptio
 	ReleaseSRWLockExclusive(&m_Lock);
 }
 
-#endif
+#endif // _WIN32
+#endif // _DEBUG

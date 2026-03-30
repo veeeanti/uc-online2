@@ -4,12 +4,12 @@ S_API void* S_CALLTYPE SteamInternal_CreateInterface(const char* ver)
 	{
 		UCOLOG("[UCOnline2] SteamInternal_CreateInterface -> %s\r\n", ver);
 
-		HMODULE hMod = g_ClientModule;
+		PLAT_MODULE_T hMod = g_ClientModule;
 		if (g_ServerModule) hMod = g_ServerModule;
 
 		if (hMod)
 		{
-			g_pfnCreateInterface = (Fn_CreateInterface)GetProcAddress(hMod, "CreateInterface");
+			g_pfnCreateInterface = (Fn_CreateInterface)PlatGetProcAddress(hMod, "CreateInterface");
 			if (g_pfnCreateInterface)
 				return g_pfnCreateInterface(ver, nullptr);
 		}
@@ -27,7 +27,7 @@ S_API void* S_CALLTYPE SteamGameServerInternal_CreateInterface(const char* iface
 
 		if (g_ServerModule)
 		{
-			g_pfnCreateInterface = (Fn_CreateInterface)GetProcAddress(g_ServerModule, "CreateInterface");
+			g_pfnCreateInterface = (Fn_CreateInterface)PlatGetProcAddress(g_ServerModule, "CreateInterface");
 			if (g_pfnCreateInterface)
 				return g_pfnCreateInterface(iface, nullptr);
 		}
