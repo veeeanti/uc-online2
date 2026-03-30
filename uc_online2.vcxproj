@@ -12,8 +12,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="callback_dispatcher.cpp" />
-    <ClCompile Include="dump_handler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="uc_online2.rc">

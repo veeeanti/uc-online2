@@ -15,6 +15,7 @@
 #include "include/callback_dispatcher.h"
 #include "include/globals.h"
 #include "include/dll_loader.h"
+#include "include/dump_handler.h"
 
 #include "include/api/api_client.h"
 #include "include/api/api_interfaces.h"
@@ -26,7 +27,10 @@
 #include "include/api/api_factory.h"
 #include "include/api/api_flat.h"
 
+// ============================================================
 // Global variable definitions
+// ============================================================
+
 HMODULE g_ClientModule = nullptr;
 HSteamPipe g_ClientPipe = 0;
 HSteamUser g_ClientUser = 0;
@@ -80,6 +84,10 @@ Fn_BreakpadWriteDump g_pfnBreakpadWriteDump = nullptr;
 
 uintp g_CtxCounter = 0;
 
+// ============================================================
+// SteamInternal_ContextInit
+// ============================================================
+
 S_API void* S_CALLTYPE SteamInternal_ContextInit(void* pData)
 {
 	UCOLOG("[UCOnline2] SteamInternal_ContextInit");
@@ -101,6 +109,10 @@ S_API void* S_CALLTYPE SteamInternal_ContextInit(void* pData)
 		return pBase + 16;
 	#endif
 }
+
+// ============================================================
+// Logging
+// ============================================================
 
 #ifdef _DEBUG
 
@@ -151,6 +163,10 @@ void UCOColor(WORD color, const char* text)
 		UCOLOG("%s", text);
 #endif
 }
+
+// ============================================================
+// InitSteamClient
+// ============================================================
 
 void* InitSteamClient(HMODULE* phMod, bool bLocal, const char* iface)
 {
@@ -230,6 +246,10 @@ void* InitSteamClient(HMODULE* phMod, bool bLocal, const char* iface)
 	return nullptr;
 }
 
+// ============================================================
+// DllMain
+// ============================================================
+
 BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
@@ -279,3 +299,478 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 
 	return TRUE;
 }
+
+// ============================================================
+// CCallbackDispatcher
+// ============================================================
+
+static bool s_bDispatcherReady = false;
+
+CCallbackDispatcher::CCallbackDispatcher()
+{
+	UCOColor(FOREGROUND_BLUE | FOREGROUND_INTENSITY, "[UCOnline2] CCallbackDispatcher constructed\r\n");
+
+	m_pfnBGetCallback = nullptr;
+	m_pfnFreeLastCallback = nullptr;
+	m_pfnGetAPICallResult = nullptr;
+	m_CurrentUser = 0;
+	m_ManualCbId = 0;
+	m_ManualCbSize = 0;
+	m_bProcessing = false;
+	m_CallbackMap.clear();
+	m_CallResultMap.clear();
+	m_BufferMap.clear();
+	s_bDispatcherReady = true;
+}
+
+CCallbackDispatcher::~CCallbackDispatcher()
+{
+	UCOColor(FOREGROUND_BLUE | FOREGROUND_INTENSITY, "[UCOnline2] CCallbackDispatcher destroyed\r\n");
+
+	s_bDispatcherReady = false;
+	m_pfnBGetCallback = nullptr;
+	m_pfnFreeLastCallback = nullptr;
+	m_pfnGetAPICallResult = nullptr;
+	m_CurrentUser = 0;
+	m_ManualCbId = 0;
+	m_ManualCbSize = 0;
+	m_bProcessing = false;
+	m_CallbackMap.clear();
+	m_CallResultMap.clear();
+	m_BufferMap.clear();
+}
+
+void CCallbackDispatcher::Shutdown()
+{
+	UCOColor(FOREGROUND_BLUE | FOREGROUND_INTENSITY, "[UCOnline2] CCallbackDispatcher shutdown\r\n");
+
+	s_bDispatcherReady = false;
+	m_pfnBGetCallback = nullptr;
+	m_pfnFreeLastCallback = nullptr;
+	m_pfnGetAPICallResult = nullptr;
+	m_CurrentUser = 0;
+	m_ManualCbId = 0;
+	m_ManualCbSize = 0;
+	m_bProcessing = false;
+	m_CallbackMap.clear();
+	m_CallResultMap.clear();
+	m_BufferMap.clear();
+}
+
+void CCallbackDispatcher::ExecuteCallResult(HSteamPipe hPipe, SteamAPICall_t hCall, CCallbackBase* pCb)
+{
+	UCOLOG("[UCOnline2] ExecuteCallResult -> call=%lld cb=%d size=%d\r\n", hCall, pCb->GetICallback(), pCb->GetCallbackSizeBytes());
+
+	BYTE* pBuffer = new BYTE[pCb->GetCallbackSizeBytes()]();
+	bool bFailed = false;
+
+	bool bResult = m_pfnGetAPICallResult(hPipe, hCall, pBuffer, pCb->GetCallbackSizeBytes(), pCb->GetICallback(), &bFailed);
+
+	if (bResult && !bFailed)
+	{
+		size_t countBefore = m_CallbackMap.size();
+
+		pCb->Run(pBuffer, bFailed, hCall);
+
+		if (countBefore != m_CallbackMap.size())
+		{
+			UCOColor(FOREGROUND_BLUE | FOREGROUND_INTENSITY, "[UCOnline2] Callback map changed during CallResult execution\r\n");
+
+			m_CallbackMap.erase(LobbyEnter_t::k_iCallback);
+			pCb->Run(pBuffer);
+		}
+
+		m_BufferMap.insert(std::make_pair(hCall, pBuffer));
+	}
+	else
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] GetAPICallResult failed\r\n");
+		delete[] pBuffer;
+	}
+}
+
+void CCallbackDispatcher::DispatchFrame(HSteamPipe hPipe, bool bServer)
+{
+	if (!m_pfnBGetCallback || !m_pfnFreeLastCallback || !m_pfnGetAPICallResult)
+		return;
+
+	CallbackMsg_t msg = { 0 };
+	if (!m_pfnBGetCallback(hPipe, &msg))
+		return;
+
+	UCOLOG("[UCOnline2] Callback received -> %d\r\n", msg.m_iCallback);
+	m_CurrentUser = msg.m_hSteamUser;
+
+	if (msg.m_iCallback == SteamAPICallCompleted_t::k_iCallback && msg.m_cubParam == sizeof(SteamAPICallCompleted_t))
+	{
+		SteamAPICallCompleted_t* pCompleted = (SteamAPICallCompleted_t*)msg.m_pubParam;
+
+		if (!m_CallResultMap.empty())
+		{
+			for (auto it = m_CallResultMap.begin(); it != m_CallResultMap.end(); ++it)
+			{
+				if (pCompleted->m_hAsyncCall == it->first &&
+					pCompleted->m_iCallback == it->second->GetICallback() &&
+					pCompleted->m_cubParam == (uint32)it->second->GetCallbackSizeBytes())
+				{
+					ExecuteCallResult(hPipe, it->first, it->second);
+				}
+			}
+		}
+	}
+	else
+	{
+		if (!m_CallbackMap.empty())
+		{
+			for (auto it = m_CallbackMap.begin(); it != m_CallbackMap.end(); ++it)
+			{
+				CCallbackBase* pCb = it->second;
+
+				if (it->first == msg.m_iCallback && (pCb->m_nCallbackFlags & pCb->k_ECallbackFlagsRegistered))
+				{
+					if (msg.m_hSteamUser == g_ServerUser && (pCb->m_nCallbackFlags & pCb->k_ECallbackFlagsGameServer) && bServer)
+					{
+						UCOLOG("[UCOnline2] Server callback -> %d flags=%d\r\n", msg.m_iCallback, pCb->m_nCallbackFlags);
+						pCb->Run(msg.m_pubParam);
+						break;
+					}
+					else if (msg.m_hSteamUser == g_ClientUser && !(pCb->m_nCallbackFlags & pCb->k_ECallbackFlagsGameServer) && !bServer)
+					{
+						UCOLOG("[UCOnline2] Client callback -> %d flags=%d\r\n", msg.m_iCallback, pCb->m_nCallbackFlags);
+
+						bool bSkip = false;
+
+						if (msg.m_iCallback == HTML_NeedsPaint_t::k_iCallback && msg.m_cubParam == sizeof(HTML_NeedsPaint_t))
+						{
+							HTML_NeedsPaint_t* pPaint = (HTML_NeedsPaint_t*)msg.m_pubParam;
+							if (pPaint->unWide == 1 || pPaint->unTall == 1)
+								bSkip = true;
+						}
+
+						if (!bSkip)
+							pCb->Run(msg.m_pubParam);
+
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	UCOLOG("[UCOnline2] Freeing callback -> %d\r\n", msg.m_iCallback);
+	SecureZeroMemory(msg.m_pubParam, msg.m_cubParam);
+	m_pfnFreeLastCallback(hPipe);
+}
+
+void CCallbackDispatcher::DispatchFrameSafe(HSteamPipe hPipe, bool bServer)
+{
+	try
+	{
+		if (!m_pfnBGetCallback || !m_pfnFreeLastCallback || !m_pfnGetAPICallResult)
+			return;
+
+		CallbackMsg_t msg = { 0 };
+		if (!m_pfnBGetCallback(hPipe, &msg))
+			return;
+
+		UCOLOG("[UCOnline2] Callback (safe) -> %d\r\n", msg.m_iCallback);
+		m_CurrentUser = msg.m_hSteamUser;
+
+		if (msg.m_iCallback == SteamAPICallCompleted_t::k_iCallback && msg.m_cubParam == sizeof(SteamAPICallCompleted_t))
+		{
+			SteamAPICallCompleted_t* pCompleted = (SteamAPICallCompleted_t*)msg.m_pubParam;
+
+			if (!m_CallResultMap.empty())
+			{
+				for (auto it = m_CallResultMap.begin(); it != m_CallResultMap.end(); ++it)
+				{
+					if (pCompleted->m_hAsyncCall == it->first &&
+						pCompleted->m_iCallback == it->second->GetICallback() &&
+						pCompleted->m_cubParam == (uint32)it->second->GetCallbackSizeBytes())
+					{
+						ExecuteCallResult(hPipe, it->first, it->second);
+					}
+				}
+			}
+		}
+		else
+		{
+			if (!m_CallbackMap.empty())
+			{
+				for (auto it = m_CallbackMap.begin(); it != m_CallbackMap.end(); ++it)
+				{
+					CCallbackBase* pCb = it->second;
+
+					if (it->first == msg.m_iCallback && (pCb->m_nCallbackFlags & pCb->k_ECallbackFlagsRegistered))
+					{
+						if (msg.m_hSteamUser == g_ServerUser && (pCb->m_nCallbackFlags & pCb->k_ECallbackFlagsGameServer) && bServer)
+						{
+							UCOLOG("[UCOnline2] Server callback (safe) -> %d flags=%d\r\n", msg.m_iCallback, pCb->m_nCallbackFlags);
+							pCb->Run(msg.m_pubParam);
+							break;
+						}
+						else if (msg.m_hSteamUser == g_ClientUser && !(pCb->m_nCallbackFlags & pCb->k_ECallbackFlagsGameServer) && !bServer)
+						{
+							UCOLOG("[UCOnline2] Client callback (safe) -> %d flags=%d\r\n", msg.m_iCallback, pCb->m_nCallbackFlags);
+							pCb->Run(msg.m_pubParam);
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		UCOLOG("[UCOnline2] Freeing callback (safe) -> %d\r\n", msg.m_iCallback);
+		SecureZeroMemory(msg.m_pubParam, msg.m_cubParam);
+		m_pfnFreeLastCallback(hPipe);
+	}
+	catch (...)
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] Exception in callback dispatch\r\n");
+	}
+}
+
+void CCallbackDispatcher::Add(CCallbackBase* pCb, int iCallback)
+{
+	if (!pCb)
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] Add: null callback ptr\r\n");
+		return;
+	}
+
+	if (pCb->GetCallbackSizeBytes() == 0)
+		return;
+
+	UCOLOG("[UCOnline2] Register callback -> %d size=%d flags=%d\r\n", iCallback, pCb->GetCallbackSizeBytes(), pCb->m_nCallbackFlags);
+
+	pCb->m_nCallbackFlags |= pCb->k_ECallbackFlagsRegistered;
+	pCb->m_iCallback = iCallback;
+	m_CallbackMap.insert(std::make_pair(iCallback, pCb));
+}
+
+void CCallbackDispatcher::AddCallResult(CCallbackBase* pCb, SteamAPICall_t hCall)
+{
+	if (!pCb || hCall == k_uAPICallInvalid)
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] AddCallResult: invalid args\r\n");
+		return;
+	}
+
+	if (pCb->GetICallback() == 0 || pCb->GetCallbackSizeBytes() == 0)
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] AddCallResult: zero callback\r\n");
+		return;
+	}
+
+	UCOLOG("[UCOnline2] Register call result -> %lld cb=%d size=%d\r\n", hCall, pCb->GetICallback(), pCb->GetCallbackSizeBytes());
+
+	pCb->m_nCallbackFlags |= pCb->k_ECallbackFlagsRegistered;
+
+	auto existing = m_CallResultMap.find(hCall);
+	if (existing == m_CallResultMap.end())
+	{
+		m_CallResultMap.insert(std::make_pair(hCall, pCb));
+	}
+	else
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] AddCallResult: already registered\r\n");
+		existing->second = pCb;
+	}
+}
+
+void CCallbackDispatcher::Remove(CCallbackBase* pCb)
+{
+	if (!pCb)
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] Remove: null callback ptr\r\n");
+		return;
+	}
+
+	if (!(pCb->m_nCallbackFlags & pCb->k_ECallbackFlagsRegistered))
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] Remove: not registered\r\n");
+		return;
+	}
+
+	if (m_CallbackMap.empty())
+		return;
+
+	UCOLOG("[UCOnline2] Unregister callback -> %d flags=%d\r\n", pCb->GetICallback(), pCb->m_nCallbackFlags);
+	pCb->m_nCallbackFlags &= ~pCb->k_ECallbackFlagsRegistered;
+
+	for (auto it = m_CallbackMap.begin(); it != m_CallbackMap.end(); ++it)
+	{
+		if (it->second == pCb)
+		{
+			m_CallbackMap.erase(it);
+			break;
+		}
+	}
+}
+
+void CCallbackDispatcher::RemoveCallResult(CCallbackBase* pCb, SteamAPICall_t hCall)
+{
+	if (!pCb || hCall == k_uAPICallInvalid)
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] RemoveCallResult: invalid args\r\n");
+		return;
+	}
+
+	if (!(pCb->m_nCallbackFlags & pCb->k_ECallbackFlagsRegistered))
+	{
+		UCOColor(FOREGROUND_RED | FOREGROUND_INTENSITY, "[UCOnline2] RemoveCallResult: not registered\r\n");
+		return;
+	}
+
+	UCOLOG("[UCOnline2] Unregister call result -> %lld cb=%d flags=%d\r\n", hCall, pCb->GetICallback(), pCb->m_nCallbackFlags);
+	pCb->m_nCallbackFlags &= ~pCb->k_ECallbackFlagsRegistered;
+
+	auto bufIt = m_BufferMap.find(hCall);
+	if (bufIt != m_BufferMap.end())
+	{
+		UCOColor(FOREGROUND_BLUE | FOREGROUND_INTENSITY, "[UCOnline2] Freeing call result buffer\r\n");
+		delete[] bufIt->second;
+		m_BufferMap.erase(bufIt);
+	}
+}
+
+CCallbackDispatcher* GetDispatcher()
+{
+	static CCallbackDispatcher instance;
+	return &instance;
+}
+
+// ============================================================
+// CDumpHandler (_DEBUG only)
+// ============================================================
+
+#ifdef _DEBUG
+
+#include <DbgHelp.h>
+
+CDumpHandler::CDumpHandler()
+{
+	m_Comment.clear();
+	m_hDbgHelp = nullptr;
+	m_pfnWriteDump = nullptr;
+	m_bReady = false;
+
+	m_hDbgHelp = LoadLibraryExW(L"DbgHelp.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+	if (!m_hDbgHelp)
+		return;
+
+	FARPROC fp = GetProcAddress(m_hDbgHelp, "MiniDumpWriteDump");
+	if (!fp)
+	{
+		FreeLibrary(m_hDbgHelp);
+		m_hDbgHelp = nullptr;
+		return;
+	}
+
+	m_pfnWriteDump = (Fn_MiniDumpWriteDump)fp;
+
+	InitializeSRWLock(&m_Lock);
+	m_bReady = true;
+}
+
+CDumpHandler::~CDumpHandler()
+{
+	m_pfnWriteDump = nullptr;
+	m_Comment.clear();
+
+	if (m_hDbgHelp)
+	{
+		FreeLibrary(m_hDbgHelp);
+		m_hDbgHelp = nullptr;
+	}
+
+	m_bReady = false;
+}
+
+bool CDumpHandler::IsReady()
+{
+	return m_bReady;
+}
+
+void CDumpHandler::SetComment(const wchar_t* comment)
+{
+	m_Comment.assign(comment);
+}
+
+size_t CDumpHandler::GetCommentByteSize()
+{
+	if (m_Comment.empty()) return 0;
+	return m_Comment.length() * sizeof(wchar_t);
+}
+
+const wchar_t* CDumpHandler::GetComment()
+{
+	return m_Comment.c_str();
+}
+
+void CDumpHandler::ClearComment()
+{
+	m_Comment.clear();
+}
+
+void CDumpHandler::WriteDump(DWORD exceptionCode, _EXCEPTION_POINTERS* pExceptionInfo)
+{
+	if (!m_hDbgHelp || !m_pfnWriteDump)
+		return;
+
+	HANDLE hProcess = GetCurrentProcess();
+	DWORD pid = GetCurrentProcessId();
+
+	AcquireSRWLockExclusive(&m_Lock);
+
+	MINIDUMP_EXCEPTION_INFORMATION excInfo = { 0 };
+	excInfo.ThreadId = GetCurrentThreadId();
+	excInfo.ExceptionPointers = pExceptionInfo;
+	excInfo.ClientPointers = FALSE;
+
+	MINIDUMP_TYPE dumpType = (MINIDUMP_TYPE)(MiniDumpNormal | MiniDumpWithHandleData | MiniDumpWithUnloadedModules |
+		MiniDumpWithProcessThreadData | MiniDumpWithFullMemoryInfo | MiniDumpWithThreadInfo);
+
+	if (GetCommentByteSize() != 0)
+	{
+		MINIDUMP_USER_STREAM streams[2] = { 0 };
+
+		streams[0].Type = CommentStreamW;
+		streams[0].BufferSize = (ULONG)GetCommentByteSize();
+		streams[0].Buffer = (LPVOID)GetComment();
+
+		MINIDUMP_EXCEPTION_STREAM excStream = { 0 };
+		excStream.ExceptionRecord.ExceptionCode = exceptionCode;
+
+		streams[1].Type = ExceptionStream;
+		streams[1].BufferSize = sizeof(MINIDUMP_EXCEPTION_STREAM);
+		streams[1].Buffer = &excStream;
+
+		MINIDUMP_USER_STREAM_INFORMATION streamInfo = { 0 };
+		streamInfo.UserStreamCount = 2;
+		streamInfo.UserStreamArray = streams;
+
+		m_pfnWriteDump(hProcess, pid, nullptr, dumpType, &excInfo, &streamInfo, nullptr);
+	}
+	else
+	{
+		MINIDUMP_USER_STREAM streams[1] = { 0 };
+
+		MINIDUMP_EXCEPTION_STREAM excStream = { 0 };
+		excStream.ExceptionRecord.ExceptionCode = exceptionCode;
+
+		streams[0].Type = ExceptionStream;
+		streams[0].BufferSize = sizeof(MINIDUMP_EXCEPTION_STREAM);
+		streams[0].Buffer = &excStream;
+
+		MINIDUMP_USER_STREAM_INFORMATION streamInfo = { 0 };
+		streamInfo.UserStreamCount = 1;
+		streamInfo.UserStreamArray = streams;
+
+		m_pfnWriteDump(hProcess, pid, nullptr, dumpType, &excInfo, &streamInfo, nullptr);
+	}
+
+	ReleaseSRWLockExclusive(&m_Lock);
+}
+
+#endif
