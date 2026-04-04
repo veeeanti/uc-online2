@@ -1,171 +1,161 @@
-#pragma once
-
-#include <Windows.h>
-
-#define STEAM_API_EXPORTS
-#include "include/sdk/steam_api.h"
-#include "include/sdk/steamclientpublic.h"
-#include "include/sdk/steam_gameserver.h"
-
-const uint32 k_unServerFlagNone    = 0x00;
-const uint32 k_unServerFlagSecure  = 0x01;
-const uint32 k_unServerFlagPrivate = 0x02;
+#include <windows.h>
+#include "include/include/sdk/steam_api.h"
+#include "include/include/sdk/steamclientpublic.h"
+#include "include/include/sdk/steam_gameserver.h"
 
 class ISteamGameSearch { public: virtual ~ISteamGameSearch() {} };
 
 class CSteamAPIContext
 {
 public:
-	ISteamClient* m_pSteamClient;
-	ISteamUser* m_pSteamUser;
-	ISteamFriends* m_pSteamFriends;
-	ISteamUtils* m_pSteamUtils;
-	ISteamMatchmaking* m_pSteamMatchmaking;
-	ISteamMatchmakingServers* m_pSteamMatchmakingServers;
-	ISteamUserStats* m_pSteamUserStats;
-	ISteamApps* m_pSteamApps;
-	ISteamNetworking* m_pSteamNetworking;
-	ISteamRemoteStorage* m_pSteamRemoteStorage;
-	ISteamScreenshots* m_pSteamScreenshots;
-	ISteamHTTP* m_pSteamHTTP;
-	ISteamController* m_pSteamController;
-	ISteamUGC* m_pSteamUGC;
-	ISteamMusic* m_pSteamMusic;
-	ISteamGameSearch* m_pSteamGameSearch;
-	ISteamParties* m_pSteamParties;
-	ISteamRemotePlay* m_pSteamRemotePlay;
-	ISteamTimeline* m_pSteamTimeline;
-	ISteamInventory* m_pSteamInventory;
-	ISteamHTMLSurface* m_pSteamHTMLSurface;
-	ISteamVideo* m_pSteamVideo;
-	ISteamParentalSettings* m_pSteamParentalSettings;
-	ISteamInput* m_pSteamInput;
+    ISteamClient* m_pSteamClient;
+    ISteamUser* m_pSteamUser;
+    ISteamFriends* m_pSteamFriends;
+    ISteamUtils* m_pSteamUtils;
+    ISteamMatchmaking* m_pSteamMatchmaking;
+    ISteamMatchmakingServers* m_pSteamMatchmakingServers;
+    ISteamUserStats* m_pSteamUserStats;
+    ISteamApps* m_pSteamApps;
+    ISteamNetworking* m_pSteamNetworking;
+    ISteamRemoteStorage* m_pSteamRemoteStorage;
+    ISteamScreenshots* m_pSteamScreenshots;
+    ISteamHTTP* m_pSteamHTTP;
+    ISteamController* m_pSteamController;
+    ISteamUGC* m_pSteamUGC;
+    ISteamMusic* m_pSteamMusic;
+    ISteamGameSearch* m_pSteamGameSearch;
+    ISteamParties* m_pSteamParties;
+    ISteamRemotePlay* m_pSteamRemotePlay;
+    ISteamTimeline* m_pSteamTimeline;
+    ISteamInventory* m_pSteamInventory;
+    ISteamHTMLSurface* m_pSteamHTMLSurface;
+    ISteamVideo* m_pSteamVideo;
+    ISteamParentalSettings* m_pSteamParentalSettings;
+    ISteamInput* m_pSteamInput;
 
-	bool Init()
-	{
-		HSteamUser hUser = SteamAPI_GetHSteamUser();
-		HSteamPipe hPipe = SteamAPI_GetHSteamPipe();
-		if (hPipe == 0) return false;
+    bool Init()
+    {
+        HSteamUser hUser = SteamAPI_GetHSteamUser();
+        HSteamPipe hPipe = SteamAPI_GetHSteamPipe();
+        if (hPipe == 0) return false;
 
-		m_pSteamClient = (ISteamClient*)SteamInternal_CreateInterface(STEAMCLIENT_INTERFACE_VERSION);
-		m_pSteamUser = (ISteamUser*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMUSER_INTERFACE_VERSION);
-		m_pSteamFriends = (ISteamFriends*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMFRIENDS_INTERFACE_VERSION);
-		m_pSteamUtils = (ISteamUtils*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMUTILS_INTERFACE_VERSION);
-		m_pSteamMatchmaking = (ISteamMatchmaking*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMMATCHMAKING_INTERFACE_VERSION);
-		m_pSteamMatchmakingServers = (ISteamMatchmakingServers*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMMATCHMAKINGSERVERS_INTERFACE_VERSION);
-		m_pSteamUserStats = (ISteamUserStats*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMUSERSTATS_INTERFACE_VERSION);
-		m_pSteamApps = (ISteamApps*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMAPPS_INTERFACE_VERSION);
-		m_pSteamNetworking = (ISteamNetworking*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMNETWORKING_INTERFACE_VERSION);
-		m_pSteamRemoteStorage = (ISteamRemoteStorage*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMREMOTESTORAGE_INTERFACE_VERSION);
-		m_pSteamScreenshots = (ISteamScreenshots*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMSCREENSHOTS_INTERFACE_VERSION);
-		m_pSteamHTTP = (ISteamHTTP*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMHTTP_INTERFACE_VERSION);
-		m_pSteamController = (ISteamController*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMCONTROLLER_INTERFACE_VERSION);
-		m_pSteamUGC = (ISteamUGC*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMUGC_INTERFACE_VERSION);
-		m_pSteamMusic = (ISteamMusic*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMMUSIC_INTERFACE_VERSION);
-		m_pSteamGameSearch = nullptr;
-		m_pSteamParties = (ISteamParties*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMPARTIES_INTERFACE_VERSION);
-		m_pSteamRemotePlay = (ISteamRemotePlay*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMREMOTEPLAY_INTERFACE_VERSION);
-		m_pSteamTimeline = (ISteamTimeline*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMTIMELINE_INTERFACE_VERSION);
-		m_pSteamInventory = (ISteamInventory*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMINVENTORY_INTERFACE_VERSION);
-		m_pSteamHTMLSurface = (ISteamHTMLSurface*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMHTMLSURFACE_INTERFACE_VERSION);
-		m_pSteamVideo = (ISteamVideo*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMVIDEO_INTERFACE_VERSION);
-		m_pSteamParentalSettings = (ISteamParentalSettings*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMPARENTALSETTINGS_INTERFACE_VERSION);
-		m_pSteamInput = (ISteamInput*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMINPUT_INTERFACE_VERSION);
+        m_pSteamClient = (ISteamClient*)SteamInternal_CreateInterface(STEAMCLIENT_INTERFACE_VERSION);
+        m_pSteamUser = (ISteamUser*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMUSER_INTERFACE_VERSION);
+        m_pSteamFriends = (ISteamFriends*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMFRIENDS_INTERFACE_VERSION);
+        m_pSteamUtils = (ISteamUtils*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMUTILS_INTERFACE_VERSION);
+        m_pSteamMatchmaking = (ISteamMatchmaking*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMMATCHMAKING_INTERFACE_VERSION);
+        m_pSteamMatchmakingServers = (ISteamMatchmakingServers*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMMATCHMAKINGSERVERS_INTERFACE_VERSION);
+        m_pSteamUserStats = (ISteamUserStats*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMUSERSTATS_INTERFACE_VERSION);
+        m_pSteamApps = (ISteamApps*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMAPPS_INTERFACE_VERSION);
+        m_pSteamNetworking = (ISteamNetworking*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMNETWORKING_INTERFACE_VERSION);
+        m_pSteamRemoteStorage = (ISteamRemoteStorage*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMREMOTESTORAGE_INTERFACE_VERSION);
+        m_pSteamScreenshots = (ISteamScreenshots*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMSCREENSHOTS_INTERFACE_VERSION);
+        m_pSteamHTTP = (ISteamHTTP*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMHTTP_INTERFACE_VERSION);
+        m_pSteamController = (ISteamController*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMCONTROLLER_INTERFACE_VERSION);
+        m_pSteamUGC = (ISteamUGC*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMUGC_INTERFACE_VERSION);
+        m_pSteamMusic = (ISteamMusic*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMMUSIC_INTERFACE_VERSION);
+        m_pSteamGameSearch = nullptr;
+        m_pSteamParties = (ISteamParties*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMPARTIES_INTERFACE_VERSION);
+        m_pSteamRemotePlay = (ISteamRemotePlay*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMREMOTEPLAY_INTERFACE_VERSION);
+        m_pSteamTimeline = (ISteamTimeline*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMTIMELINE_INTERFACE_VERSION);
+        m_pSteamInventory = (ISteamInventory*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMINVENTORY_INTERFACE_VERSION);
+        m_pSteamHTMLSurface = (ISteamHTMLSurface*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMHTMLSURFACE_INTERFACE_VERSION);
+        m_pSteamVideo = (ISteamVideo*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMVIDEO_INTERFACE_VERSION);
+        m_pSteamParentalSettings = (ISteamParentalSettings*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMPARENTALSETTINGS_INTERFACE_VERSION);
+        m_pSteamInput = (ISteamInput*)SteamInternal_FindOrCreateUserInterface(hUser, STEAMINPUT_INTERFACE_VERSION);
 
-		return m_pSteamUser != nullptr && m_pSteamUtils != nullptr;
-	}
+        return m_pSteamUser != nullptr && m_pSteamUtils != nullptr;
+    }
 
-	void Clear()
-	{
-		m_pSteamClient = nullptr; m_pSteamUser = nullptr; m_pSteamFriends = nullptr; m_pSteamUtils = nullptr;
-		m_pSteamMatchmaking = nullptr; m_pSteamMatchmakingServers = nullptr;
-		m_pSteamUserStats = nullptr; m_pSteamApps = nullptr; m_pSteamNetworking = nullptr;
-		m_pSteamRemoteStorage = nullptr; m_pSteamScreenshots = nullptr; m_pSteamHTTP = nullptr;
-		m_pSteamController = nullptr; m_pSteamUGC = nullptr; m_pSteamMusic = nullptr;
-		m_pSteamGameSearch = nullptr; m_pSteamParties = nullptr;
-		m_pSteamRemotePlay = nullptr; m_pSteamTimeline = nullptr;
-		m_pSteamInventory = nullptr; m_pSteamHTMLSurface = nullptr;
-		m_pSteamVideo = nullptr; m_pSteamParentalSettings = nullptr;
-		m_pSteamInput = nullptr;
-	}
+    void Clear()
+    {
+        m_pSteamClient = nullptr; m_pSteamUser = nullptr; m_pSteamFriends = nullptr; m_pSteamUtils = nullptr;
+        m_pSteamMatchmaking = nullptr; m_pSteamMatchmakingServers = nullptr;
+        m_pSteamUserStats = nullptr; m_pSteamApps = nullptr; m_pSteamNetworking = nullptr;
+        m_pSteamRemoteStorage = nullptr; m_pSteamScreenshots = nullptr; m_pSteamHTTP = nullptr;
+        m_pSteamController = nullptr; m_pSteamUGC = nullptr; m_pSteamMusic = nullptr;
+        m_pSteamGameSearch = nullptr; m_pSteamParties = nullptr;
+        m_pSteamRemotePlay = nullptr; m_pSteamTimeline = nullptr;
+        m_pSteamInventory = nullptr; m_pSteamHTMLSurface = nullptr;
+        m_pSteamVideo = nullptr; m_pSteamParentalSettings = nullptr;
+        m_pSteamInput = nullptr;
+    }
 
-	ISteamClient* SteamClient() { return m_pSteamClient; }
-	ISteamUser* SteamUser() { return m_pSteamUser; }
-	ISteamFriends* SteamFriends() { return m_pSteamFriends; }
-	ISteamUtils* SteamUtils() { return m_pSteamUtils; }
-	ISteamMatchmaking* SteamMatchmaking() { return m_pSteamMatchmaking; }
-	ISteamMatchmakingServers* SteamMatchmakingServers() { return m_pSteamMatchmakingServers; }
-	ISteamUserStats* SteamUserStats() { return m_pSteamUserStats; }
-	ISteamApps* SteamApps() { return m_pSteamApps; }
-	ISteamNetworking* SteamNetworking() { return m_pSteamNetworking; }
-	ISteamRemoteStorage* SteamRemoteStorage() { return m_pSteamRemoteStorage; }
-	ISteamScreenshots* SteamScreenshots() { return m_pSteamScreenshots; }
-	ISteamHTTP* SteamHTTP() { return m_pSteamHTTP; }
-	ISteamController* SteamController() { return m_pSteamController; }
-	ISteamUGC* SteamUGC() { return m_pSteamUGC; }
-	ISteamMusic* SteamMusic() { return m_pSteamMusic; }
-	ISteamGameSearch* SteamGameSearch() { return m_pSteamGameSearch; }
-	ISteamParties* SteamParties() { return m_pSteamParties; }
-	ISteamRemotePlay* SteamRemotePlay() { return m_pSteamRemotePlay; }
-	ISteamInventory* SteamInventory() { return m_pSteamInventory; }
-	ISteamHTMLSurface* SteamHTMLSurface() { return m_pSteamHTMLSurface; }
-	ISteamVideo* SteamVideo() { return m_pSteamVideo; }
-	ISteamParentalSettings* SteamParentalSettings() { return m_pSteamParentalSettings; }
-	ISteamInput* SteamInput() { return m_pSteamInput; }
-	ISteamTimeline* SteamTimeline() { return m_pSteamTimeline; }
+    ISteamClient* SteamClient() { return m_pSteamClient; }
+    ISteamUser* SteamUser() { return m_pSteamUser; }
+    ISteamFriends* SteamFriends() { return m_pSteamFriends; }
+    ISteamUtils* SteamUtils() { return m_pSteamUtils; }
+    ISteamMatchmaking* SteamMatchmaking() { return m_pSteamMatchmaking; }
+    ISteamMatchmakingServers* SteamMatchmakingServers() { return m_pSteamMatchmakingServers; }
+    ISteamUserStats* SteamUserStats() { return m_pSteamUserStats; }
+    ISteamApps* SteamApps() { return m_pSteamApps; }
+    ISteamNetworking* SteamNetworking() { return m_pSteamNetworking; }
+    ISteamRemoteStorage* SteamRemoteStorage() { return m_pSteamRemoteStorage; }
+    ISteamScreenshots* SteamScreenshots() { return m_pSteamScreenshots; }
+    ISteamHTTP* SteamHTTP() { return m_pSteamHTTP; }
+    ISteamController* SteamController() { return m_pSteamController; }
+    ISteamUGC* SteamUGC() { return m_pSteamUGC; }
+    ISteamMusic* SteamMusic() { return m_pSteamMusic; }
+    ISteamGameSearch* SteamGameSearch() { return m_pSteamGameSearch; }
+    ISteamParties* SteamParties() { return m_pSteamParties; }
+    ISteamRemotePlay* SteamRemotePlay() { return m_pSteamRemotePlay; }
+    ISteamInventory* SteamInventory() { return m_pSteamInventory; }
+    ISteamHTMLSurface* SteamHTMLSurface() { return m_pSteamHTMLSurface; }
+    ISteamVideo* SteamVideo() { return m_pSteamVideo; }
+    ISteamParentalSettings* SteamParentalSettings() { return m_pSteamParentalSettings; }
+    ISteamInput* SteamInput() { return m_pSteamInput; }
+    ISteamTimeline* SteamTimeline() { return m_pSteamTimeline; }
 };
 
 class CSteamGameServerAPIContext
 {
 public:
-	ISteamClient* m_pSteamClient;
-	ISteamGameServer* m_pSteamGameServer;
-	ISteamUtils* m_pSteamUtils;
-	ISteamNetworking* m_pSteamNetworking;
-	ISteamGameServerStats* m_pSteamGameServerStats;
-	ISteamHTTP* m_pSteamHTTP;
-	ISteamInventory* m_pSteamInventory;
-	ISteamUGC* m_pSteamUGC;
-	ISteamApps* m_pSteamApps;
+    ISteamClient* m_pSteamClient;
+    ISteamGameServer* m_pSteamGameServer;
+    ISteamUtils* m_pSteamUtils;
+    ISteamNetworking* m_pSteamNetworking;
+    ISteamGameServerStats* m_pSteamGameServerStats;
+    ISteamHTTP* m_pSteamHTTP;
+    ISteamInventory* m_pSteamInventory;
+    ISteamUGC* m_pSteamUGC;
+    ISteamApps* m_pSteamApps;
 
-	bool Init()
-	{
-		HSteamUser hUser = SteamGameServer_GetHSteamUser();
-		HSteamPipe hPipe = SteamGameServer_GetHSteamPipe();
-		if (hPipe == 0) return false;
+    bool Init()
+    {
+        HSteamUser hUser = SteamGameServer_GetHSteamUser();
+        HSteamPipe hPipe = SteamGameServer_GetHSteamPipe();
+        if (hPipe == 0) return false;
 
-		m_pSteamClient = (ISteamClient*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMCLIENT_INTERFACE_VERSION);
-		m_pSteamGameServer = (ISteamGameServer*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMGAMESERVER_INTERFACE_VERSION);
-		m_pSteamUtils = (ISteamUtils*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMUTILS_INTERFACE_VERSION);
-		m_pSteamNetworking = (ISteamNetworking*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMNETWORKING_INTERFACE_VERSION);
-		m_pSteamGameServerStats = (ISteamGameServerStats*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMGAMESERVERSTATS_INTERFACE_VERSION);
-		m_pSteamHTTP = (ISteamHTTP*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMHTTP_INTERFACE_VERSION);
-		m_pSteamInventory = (ISteamInventory*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMINVENTORY_INTERFACE_VERSION);
-		m_pSteamUGC = (ISteamUGC*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMUGC_INTERFACE_VERSION);
-		m_pSteamApps = (ISteamApps*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMAPPS_INTERFACE_VERSION);
+        m_pSteamClient = (ISteamClient*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMCLIENT_INTERFACE_VERSION);
+        m_pSteamGameServer = (ISteamGameServer*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMGAMESERVER_INTERFACE_VERSION);
+        m_pSteamUtils = (ISteamUtils*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMUTILS_INTERFACE_VERSION);
+        m_pSteamNetworking = (ISteamNetworking*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMNETWORKING_INTERFACE_VERSION);
+        m_pSteamGameServerStats = (ISteamGameServerStats*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMGAMESERVERSTATS_INTERFACE_VERSION);
+        m_pSteamHTTP = (ISteamHTTP*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMHTTP_INTERFACE_VERSION);
+        m_pSteamInventory = (ISteamInventory*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMINVENTORY_INTERFACE_VERSION);
+        m_pSteamUGC = (ISteamUGC*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMUGC_INTERFACE_VERSION);
+        m_pSteamApps = (ISteamApps*)SteamInternal_FindOrCreateGameServerInterface(hUser, STEAMAPPS_INTERFACE_VERSION);
 
-		return m_pSteamGameServer != nullptr && m_pSteamUtils != nullptr;
-	}
+        return m_pSteamGameServer != nullptr && m_pSteamUtils != nullptr;
+    }
 
-	void Clear()
-	{
-		m_pSteamClient = nullptr; m_pSteamGameServer = nullptr; m_pSteamUtils = nullptr;
-		m_pSteamNetworking = nullptr; m_pSteamGameServerStats = nullptr;
-		m_pSteamHTTP = nullptr; m_pSteamInventory = nullptr; m_pSteamUGC = nullptr; m_pSteamApps = nullptr;
-	}
+    void Clear()
+    {
+        m_pSteamClient = nullptr; m_pSteamGameServer = nullptr; m_pSteamUtils = nullptr;
+        m_pSteamNetworking = nullptr; m_pSteamGameServerStats = nullptr;
+        m_pSteamHTTP = nullptr; m_pSteamInventory = nullptr; m_pSteamUGC = nullptr; m_pSteamApps = nullptr;
+    }
 
-	ISteamClient* SteamClient() { return m_pSteamClient; }
-	ISteamGameServer* SteamGameServer() { return m_pSteamGameServer; }
-	ISteamUtils* SteamGameServerUtils() { return m_pSteamUtils; }
-	ISteamNetworking* SteamGameServerNetworking() { return m_pSteamNetworking; }
-	ISteamGameServerStats* SteamGameServerStats() { return m_pSteamGameServerStats; }
-	ISteamHTTP* SteamHTTP() { return m_pSteamHTTP; }
-	ISteamInventory* SteamInventory() { return m_pSteamInventory; }
-	ISteamUGC* SteamUGC() { return m_pSteamUGC; }
-	ISteamApps* SteamApps() { return m_pSteamApps; }
+    ISteamClient* SteamClient() { return m_pSteamClient; }
+    ISteamGameServer* SteamGameServer() { return m_pSteamGameServer; }
+    ISteamUtils* SteamGameServerUtils() { return m_pSteamUtils; }
+    ISteamNetworking* SteamGameServerNetworking() { return m_pSteamNetworking; }
+    ISteamGameServerStats* SteamGameServerStats() { return m_pSteamGameServerStats; }
+    ISteamHTTP* SteamHTTP() { return m_pSteamHTTP; }
+    ISteamInventory* SteamInventory() { return m_pSteamInventory; }
+    ISteamUGC* SteamUGC() { return m_pSteamUGC; }
+    ISteamApps* SteamApps() { return m_pSteamApps; }
 };
-
-// ============================================================
 
 extern HMODULE g_ClientModule;
 extern HSteamPipe g_ClientPipe;
