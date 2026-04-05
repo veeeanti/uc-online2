@@ -20,12 +20,16 @@ __**If using self built .dlls:**__
 
 ## Configuration
 
-Create `union-crax.ini` next to the game executable to change your AppId as needed. If this file is missing, AppId defaults to `480` and plugins are not loaded. `PluginsFolder` is relative to the game executable or wherever it's set in the .ini. Or should be. I haven't tested it yet. Check the `steam_appid.txt` file that gets created upon running the game to check if your set AppId was accepted.
+Create `union-crax.ini` next to the game executable to change your AppId as needed. If this file is missing, AppId defaults to `480` and plugins are not loaded. `PluginsFolder` is relative to the game executable or wherever it's set in the .ini. Or should be. I haven't tested it yet. Check the `steam_appid.txt` file that gets created upon running the game to check if your set AppId was accepted. For games that have `480` patched in
+the game's code, try setting it to something else free that's multiplayer, like `440`
+(Team Fortress 2). Shapes of Dreams did not work using `480`, but worked fine with `440`.
+((THANK YOU to deityofsukana for helping figure that out for certain!!!))
 
 ```ini
 [Settings]
 AppId=480
 PluginsFolder=plugins
+GetStubbedLol=false
 ```
 
 ## Plugin Loader / Injector
@@ -38,6 +42,15 @@ plugins/
   02_second_plugin.dll
   03_another_one_(dj_khaled!!).dll
 ```
+
+## SteamStubbed
+
+If `GetStubbedLol` is enabled in the .ini file, it will attempt to patch SteamStub on the fly. This is meant for games that Steamless cannot unpack, such as Dave the Diver. However, it can be used to keep from modifying the game files at all, or as little as possible. I'm not responsible for the code, it was used from DenuvoSanctuary's original Rust code, [which can be found here](https://github.com/denuvosanctuary/steamstubbed). I
+rewrote it in C++ so I could try integrating it into this project and not need to inject it. I did not ask for permission to use it in any way, so if there are any issues with that, please contact me and I'll remove it or work something out. It's not much of a change anyways, and they're easy to find too.
+
+If the function is disabled, or was never written in the first place, then it simply 
+will just ignore the function entirely and continue as it wassn't implemented in the
+first place.
 
 ## Building
 

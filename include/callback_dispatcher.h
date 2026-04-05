@@ -1,3 +1,12 @@
+/**
+ *  The heavy lifter of this and how multiplayer games work on Steam in general.
+ *  This is the class that handles all of the callbacks, and also the call results.
+ *  Matchmaking, lobby creation & handling, server list retrieval, all of that is
+ *  done through here. Without the dispatcher, none of these things would work.
+ *
+ *  ~veeλnti<3 2026
+ */
+
 #pragma once
 
 #include <map>

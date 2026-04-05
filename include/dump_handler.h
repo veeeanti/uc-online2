@@ -1,6 +1,10 @@
-/*  This should only be a debug build feature, as it is not needed by myself really.
-    This also only dumps crashes that may occur when using this, I cannot guarantee stability. 
-    So do expect potential issues. Thank you for your patience. */
+/**
+ *  This should only be a debug build feature, as it is not needed by myself really.
+ *  This also only dumps crashes that may occur when using this, I cannot guarantee stability. 
+ *  So do expect potential issues. Thank you for your patience.
+ *
+ *  ~veeλnti<3 2026
+ */
 
 #pragma once
 

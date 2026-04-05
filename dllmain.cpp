@@ -295,6 +295,12 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 		s_PluginLoader.LoadPlugins();
 
 		UCOLOG("[UCOnline2] %zu plugin(s) loaded", s_PluginLoader.LoadedCount());
+
+		g_bSteamStubEnabled = s_PluginLoader.GetSteamStubEnabled();
+		if (g_bSteamStubEnabled)
+		{
+			SteamStub_Init();
+		}
 	}
 
 	return TRUE;
@@ -772,5 +778,87 @@ void CDumpHandler::WriteDump(DWORD exceptionCode, _EXCEPTION_POINTERS* pExceptio
 
 	ReleaseSRWLockExclusive(&m_Lock);
 }
-
 #endif
+
+/**
+ *  SteamStubbed, credits to DenuvoSanctuary for the original code for this.
+ *  Originally written in Rust, rewritten here in C++ to integrate it.
+ */
+#include <intrin.h>
+#include "include/MinHook.h"
+#include <atomic>
+
+static bool g_bSteamStubEnabled = false;
+
+static std::atomic<uint32_t> g_SteamStubCount{ 0 };
+static constexpr uint32_t STEAM_STUB_MAX_COUNT = 1;
+static constexpr uint8_t STEAM_STUB_SIGNATURE[] = { 0x44, 0x0F, 0xB6, 0xF8, 0x3C, 0x30, 0x0F, 0x84 };
+
+typedef DWORD(WINAPI* GetTickCount_t)(void);
+static GetTickCount_t g_OrigGetTickCount = nullptr;
+
+static uint8_t* SteamStub_FindSignature(uint8_t* start, uint8_t* end, const uint8_t* sig, size_t sigLen)
+{
+	for (uint8_t* p = start; p < end - sigLen; ++p)
+	{
+		bool match = true;
+		for (size_t i = 0; i < sigLen; ++i)
+		{
+			if (p[i] != sig[i])
+			{
+				match = false;
+				break;
+			}
+		}
+		if (match)
+			return p;
+	}
+	return nullptr;
+}
+
+static DWORD WINAPI SteamStub_HookGetTickCount(void)
+{
+	uint8_t* returnAddr = reinterpret_cast<uint8_t*>(_ReturnAddress());
+
+	uint8_t* start = returnAddr;
+	uint8_t* end = start + 128;
+
+	DWORD oldProtect = 0;
+	if (!VirtualProtect(start, static_cast<SIZE_T>(end - start), PAGE_EXECUTE_READWRITE, &oldProtect))
+	{
+		return g_OrigGetTickCount();
+	}
+
+	uint8_t* found = SteamStub_FindSignature(start, end, STEAM_STUB_SIGNATURE, sizeof(STEAM_STUB_SIGNATURE));
+	if (found)
+	{
+		found[6] = 0x90;
+		found[7] = 0xE9;
+
+		uint32_t count = g_SteamStubCount.fetch_add(1, std::memory_order_seq_cst) + 1;
+		if (count >= STEAM_STUB_MAX_COUNT)
+		{
+			MH_DisableHook(reinterpret_cast<LPVOID*>(GetTickCount));
+		}
+	}
+
+	VirtualProtect(start, static_cast<SIZE_T>(end - start), oldProtect, &oldProtect);
+
+	return g_OrigGetTickCount();
+}
+
+static void SteamStub_Init()
+{
+	if (MH_Initialize() != MH_OK)
+		return;
+
+	void* pTarget = reinterpret_cast<void*>(GetTickCount);
+
+	if (MH_CreateHook(pTarget, SteamStub_HookGetTickCount, reinterpret_cast<LPVOID*>(&g_OrigGetTickCount)) != MH_OK)
+		return;
+
+	if (MH_EnableHook(pTarget) != MH_OK)
+		return;
+
+	UCOLOG("[UCOnline2] SteamStub hook initialized");
+}

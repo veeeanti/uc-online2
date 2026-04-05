@@ -1,3 +1,15 @@
+/**
+ *  I know it's named dll_loader.h, but in reality it does more than just that.
+ *  I added the other features after I had made it and established it would be
+ *  just a dll injector / loader and didn't realize my fuckup. I'm gonna try and
+ *  change it at some point and hope it doesn't break anything later on down the
+ *  road. Right now, this handles the injection loader, the ini configuration,
+ *  and the appid customization stuff. And now, it handles the steam stub loading
+ *  and live patching as well. The actual code can be found at the end of dllmain.cpp.
+ *
+ *  ~veeλnti<3 2026
+ */
+
 #pragma once
 
 #include <Windows.h>
@@ -43,6 +55,17 @@ public:
 
 		uint32 id = (uint32)strtoul(buf, nullptr, 10);
 		return (id == 0) ? 480 : id;
+	}
+
+	bool GetSteamStubEnabled()
+	{
+		if (m_IniPath[0] == '\0')
+			return false;
+
+		char buf[8] = { 0 };
+		GetPrivateProfileStringA("Settings", "GetStubbedLol", "false", buf, sizeof(buf), m_IniPath);
+
+		return (_stricmp(buf, "true") == 0 || _stricmp(buf, "1") == 0 || _stricmp(buf, "yes") == 0);
 	}
 
 	void LoadPlugins()

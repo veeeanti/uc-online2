@@ -1,3 +1,12 @@
+/**
+ *  All of the interfaces, exports found in the real dlls, namespaces,
+ *  functions, you name it. This is kinda necessary, and also really
+ *  touchy. So try to be careful here, if you even look at it sideways
+ *  it'll take that as a sign to just throw the whole build process lol.
+ *
+ *  ~veeλnti<3 2026
+ */
+
 #pragma once
 
 #include <Windows.h>
