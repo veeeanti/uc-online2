@@ -84,6 +84,10 @@ Fn_BreakpadWriteDump g_pfnBreakpadWriteDump = nullptr;
 
 uintp g_CtxCounter = 0;
 
+// Forward declarations for SteamStub
+static bool g_bSteamStubEnabled = false;
+static void SteamStub_Init();
+
 // ============================================================
 // SteamInternal_ContextInit
 // ============================================================
@@ -787,8 +791,6 @@ void CDumpHandler::WriteDump(DWORD exceptionCode, _EXCEPTION_POINTERS* pExceptio
 #include <intrin.h>
 #include "include/MinHook.h"
 #include <atomic>
-
-static bool g_bSteamStubEnabled = false;
 
 static std::atomic<uint32_t> g_SteamStubCount{ 0 };
 static constexpr uint32_t STEAM_STUB_MAX_COUNT = 1;
