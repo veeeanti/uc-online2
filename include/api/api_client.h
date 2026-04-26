@@ -34,19 +34,24 @@ static void WarnMissingInterface(HSteamPipe hPipe, const char* iface)
 }
 
 extern uint32 g_ForcedAppId;
+extern uint32 g_OriginalAppId;
 static bool s_bAnonUser = false;
 
 static void SetAppIDEnv()
 {
 	char szApp[16] = { 0 };
 	char szGame[32] = { 0 };
+	char szOverlayGame[32] = { 0 };
 
 	_snprintf_s(szApp, sizeof(szApp), _TRUNCATE, "%u", g_ForcedAppId);
 	_snprintf_s(szGame, sizeof(szGame), _TRUNCATE, "%llu", CGameID(g_ForcedAppId).ToUint64());
 
+	uint32 overlayAppId = (g_OriginalAppId != 0) ? g_OriginalAppId : g_ForcedAppId;
+	_snprintf_s(szOverlayGame, sizeof(szOverlayGame), _TRUNCATE, "%llu", CGameID(overlayAppId).ToUint64());
+
 	SetEnvironmentVariableA("SteamAppId", szApp);
 	SetEnvironmentVariableA("SteamGameId", szGame);
-	SetEnvironmentVariableA("SteamOverlayGameId", szGame);
+	SetEnvironmentVariableA("SteamOverlayGameId", szOverlayGame);
 }
 
 static void WriteAppIDFile()
@@ -246,27 +251,6 @@ S_API ESteamAPIInitResult S_CALLTYPE SteamInternal_SteamAPI_Init(const char* psz
 			LoadBreakpadSymbols(g_ClientModule);
 
 			g_pSteamClient->Set_SteamAPI_CCheckCallbackRegisteredInProcess(CountRegisteredCallbacks);
-
-			#if defined(_M_IX86)
-				HMODULE hOverlay = GetModuleHandleW(L"GameOverlayRenderer.dll");
-			#elif defined(_M_AMD64)
-				HMODULE hOverlay = GetModuleHandleW(L"GameOverlayRenderer64.dll");
-			#endif
-
-			if (g_ForcedAppId != 769 && !hOverlay)
-			{
-				const char* installPath = SteamAPI_GetSteamInstallPath();
-				if (_stricmp(installPath, "UCOnline2_InvalidPath") != 0)
-				{
-					char overlayPath[MAX_PATH] = { 0 };
-					#if defined(_M_IX86)
-						_snprintf_s(overlayPath, MAX_PATH, _TRUNCATE, "%s\\GameOverlayRenderer.dll", installPath);
-					#elif defined(_M_AMD64)
-						_snprintf_s(overlayPath, MAX_PATH, _TRUNCATE, "%s\\GameOverlayRenderer64.dll", installPath);
-					#endif
-					LoadLibraryExA(overlayPath, nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
-				}
-			}
 
 			ISteamUser* pUser = (ISteamUser*)g_pSteamClient->GetISteamUser(g_ClientUser, g_ClientPipe, STEAMUSER_INTERFACE_VERSION);
 			if (pUser)

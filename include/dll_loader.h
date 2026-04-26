@@ -42,20 +42,35 @@ public:
 			m_IniPath[0] = '\0';
 	}
 
-	uint32 GetAppId()
-	{
-		if (m_IniPath[0] == '\0')
-			return 480;
+ 	uint32 GetAppId()
+ 	{
+ 		if (m_IniPath[0] == '\0')
+ 			return 480;
 
-		char buf[16] = { 0 };
-		GetPrivateProfileStringA("Settings", "AppId", "480", buf, sizeof(buf), m_IniPath);
+ 		char buf[16] = { 0 };
+ 		GetPrivateProfileStringA("Settings", "AppId", "480", buf, sizeof(buf), m_IniPath);
 
-		if (buf[0] == '\0')
-			return 480;
+ 		if (buf[0] == '\0')
+ 			return 480;
 
-		uint32 id = (uint32)strtoul(buf, nullptr, 10);
-		return (id == 0) ? 480 : id;
-	}
+ 		uint32 id = (uint32)strtoul(buf, nullptr, 10);
+ 		return (id == 0) ? 480 : id;
+ 	}
+
+ 	uint32 GetOgAppId()
+ 	{
+ 		if (m_IniPath[0] == '\0')
+ 	        return 0;
+
+ 		char buf[16] = { 0 };
+ 		GetPrivateProfileStringA("Settings", "ogAppId", "", buf, sizeof(buf), m_IniPath);
+
+ 		if (buf[0] == '\0')
+ 			return 0;
+
+ 		uint32 id = (uint32)strtoul(buf, nullptr, 10);
+ 		return id;
+ 	}
 
 	bool GetSteamStubEnabled()
 	{

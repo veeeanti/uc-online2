@@ -71,6 +71,7 @@ char g_InstallPath[MAX_PATH] = { 0 };
 bool g_bHaveInstallPath = false;
 SRWLOCK g_CallbackLock;
 uint32 g_ForcedAppId = 480;
+uint32 g_OriginalAppId = 0;
 
 Fn_CreateInterface g_pfnCreateInterface = nullptr;
 Fn_ReleaseThreadLocal g_pfnReleaseThreadLocal = nullptr;
@@ -251,6 +252,44 @@ void* InitSteamClient(HMODULE* phMod, bool bLocal, const char* iface)
 }
 
 // ============================================================
+// LoadGameOverlay
+// ============================================================
+
+static void LoadGameOverlay()
+{
+#if defined(_WIN32)
+	#if defined(_M_IX86)
+		HMODULE hOverlay = GetModuleHandleW(L"GameOverlayRenderer.dll");
+	#elif defined(_M_AMD64)
+		HMODULE hOverlay = GetModuleHandleW(L"GameOverlayRenderer64.dll");
+	#endif
+
+	if (g_ForcedAppId != 769 && !hOverlay)
+	{
+		const char* installPath = SteamAPI_GetSteamInstallPath();
+		if (_stricmp(installPath, "UCOnline2_InvalidPath") != 0)
+		{
+			char overlayPath[MAX_PATH] = { 0 };
+			#if defined(_M_IX86)
+				_snprintf_s(overlayPath, MAX_PATH, _TRUNCATE, "%s\\GameOverlayRenderer.dll", installPath);
+			#elif defined(_M_AMD64)
+				_snprintf_s(overlayPath, MAX_PATH, _TRUNCATE, "%s\\GameOverlayRenderer64.dll", installPath);
+			#endif
+			HMODULE hLoaded = LoadLibraryExA(overlayPath, nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+			if (hLoaded)
+			{
+				UCOLOG("[UCOnline2] Loaded game overlay: %s", overlayPath);
+			}
+			else
+			{
+				UCOLOG("[UCOnline2] Failed to load game overlay: %s (error %lu)", overlayPath, GetLastError());
+			}
+		}
+	}
+#endif // _WIN32
+}
+
+// ============================================================
 // DllMain
 // ============================================================
 
@@ -263,9 +302,13 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 		static CDLLLoader s_PluginLoader;
 		s_PluginLoader.ReadConfig();
 		g_ForcedAppId = s_PluginLoader.GetAppId();
+		g_OriginalAppId = s_PluginLoader.GetOgAppId();
 
 		SetAppIDEnv();
 		WriteAppIDFile();
+
+		// Load the game overlay early to ensure it can hook into graphics APIs
+		LoadGameOverlay();
 
 		char dllPath[MAX_PATH] = { 0 };
 		DWORD len = GetModuleFileNameA(hModule, dllPath, sizeof(dllPath));
@@ -278,6 +321,8 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 
 		UCOLOG("[UCOnline2] DLL Path: %s", dllPath);
 
+		// The actual likelihood of this being used or even working is low, as it wouldn't even work if it were named anything else.
+		// However, I'm positive that compiling without this will cause it to scream at me and I no no like that. It make me maaaad.
 		#if defined(_M_IX86)
 			if (!StrStrIA(dllPath, "steam_api.dll"))
 				UCOLOG("[UCOnline2] Warning: not named steam_api.dll");
