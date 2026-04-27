@@ -28,6 +28,7 @@ the game's code, try setting it to something else free that's multiplayer, like 
 ```ini
 [Settings]
 AppId=480
+ogAppId=220 # Half-life 2
 PluginsFolder=plugins
 GetStubbedLol=false
 ```
@@ -51,6 +52,10 @@ rewrote it in C++ so I could try integrating it into this project and not need t
 If the function is disabled, or was never written in the first place, then it simply 
 will just ignore the function entirely and continue as it wassn't implemented in the
 first place.
+
+## "ogAppId"
+
+This is an attempt to allow the overlay to force use the right game assets even when you very clearly are supposedly running Spacewar. Setting the original AppId here just gets calculated to the 64-bit Game ID string it expects (which I just learned about too...) and is used for the `SteamOverlayGameId` environment variable which could easily be run as a launch arg, but requires you knowing the long string of numbers for your game, so this just makes it way easier to set up. `SteamGameId` is not touched at all by this, as it can cause problems. It uses the `AppId` for that, except it also gets converted to the expected 64-bit Game ID string.
 
 ## Building
 
