@@ -31,6 +31,7 @@ AppId=480
 ogAppId=220 # Half-life 2
 PluginsFolder=plugins
 GetStubbedLol=false
+DLC=1234,5678,9012 # Comma-separated list of DLC AppIds to unlock
 ```
 
 ## Plugin Loader / Injector
@@ -72,7 +73,16 @@ If the function is disabled, or was never written in the first place, then it si
 will just ignore the function entirely and continue as it wassn't implemented in the
 first place.
 
-## "ogAppId"
+## Available Plugins
+
+| Plugin | Purpose |
+|---|---|
+| `photon_universal` | Photon Realtime/PUN, Fusion 2, Voice, Unity Services auth bypass, Phasmo gate NOP |
+| `unity_auth_bypass` | Generic Unity Gaming Services auth bypass (SignInWithSteam → anonymous) |
+| `playfab_bypass` | PlayFab authentication bypass (LoginWithSteam → LoginWithCustomID) |
+| `raft_mp` | Raft multiplayer patches |
+
+See individual plugin directories for detailed setup instructions.
 
 This is an attempt to allow the overlay to force use the right game assets even when you very clearly are supposedly running Spacewar. Setting the original AppId here just gets calculated to the 64-bit Game ID string it expects (which I just learned about too...) and is used for the `SteamOverlayGameId` environment variable which could easily be run as a launch arg, but requires you knowing the long string of numbers for your game, so this just makes it way easier to set up. `SteamGameId` is not touched at all by this, as it can cause problems. It uses the `AppId` for that, except it also gets converted to the expected 64-bit Game ID string.
 
@@ -102,7 +112,7 @@ Okay, so this part I did not cover as of publishing the source files, this will 
 ## Issues?
 
 - No, this will not work with Denuvo protected games. If you think it can, modify it so that it can work like an activated game, but even then I cannot guarantee it will work. It will likely reject you and you will need to get re-activated as your token will be fucked permanently. So basically, __I say just don't even bother. It'll likely waste your time and the activators' time too.__
-- As it is right now, DLC you don't own will likely not work - I'll try and add functionality for that in and if it works, then it'll likely work the same as Goldberg does.
+- As it is right now, DLC you don't own will likely not work - I'll try and add functionality for that in and if it works, then it'll likely work the same as Goldberg does. The `DLC` setting in the .ini file allows you to specify a comma-separated list of DLC AppIds to unlock.
 - If you're trying this with a game that has the AppId hard coded in (like with Godot games) then you'll need to modify the game to set the AppId to what you need it to be. Though, you won't even need this at all if you do that lol. 
 - You cannot join VAC protected servers or servers hosted using the real AppId in Garry's Mod or other Source games or any other games that have similar protections. (GoldSrc games seemingly do not apply, as CS1.6 let me join any servers.) Please do not message me asking why you can't join any servers in Garry's Mod. Instead, ask me how you can play with your friends if they have legitimate copies. :)
 - For any other unexpected or unaccounted for issues, please contact me. I have yet to test this with every game so I will rely on the community to do so. 

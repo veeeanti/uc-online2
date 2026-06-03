@@ -10,6 +10,8 @@
 #pragma once
 
 #include <Windows.h>
+#include <vector>
+#include <unordered_set>
 
 #define STEAM_API_EXPORTS
 #include "include/sdk/steam_api.h"
@@ -252,7 +254,12 @@ extern CSteamAPIContext g_ClientCtx;
 
 class CSteamAppsStub : public ISteamApps
 {
+private:
+    std::unordered_set<uint32> m_AllowedDLCIds;
+
 public:
+    void SetAllowedDLCIds(const std::vector<uint32>& ids) { m_AllowedDLCIds.clear(); m_AllowedDLCIds.insert(ids.begin(), ids.end()); }
+
     virtual bool BIsSubscribed() override { return true; }
     virtual bool BIsLowViolence() override { return true; }
     virtual bool BIsCybercafe() override { return false; }
@@ -260,7 +267,10 @@ public:
     virtual const char *GetCurrentGameLanguage() override { return "english"; }
     virtual const char *GetAvailableGameLanguages() override { return "english"; }
     virtual bool BIsSubscribedApp(AppId_t appID) override { return true; }
-    virtual bool BIsDlcInstalled(AppId_t appID) override { return true; }
+    virtual bool BIsDlcInstalled(AppId_t appID) override
+    { 
+        return m_AllowedDLCIds.empty() || m_AllowedDLCIds.find(appID) != m_AllowedDLCIds.end();
+    }
     virtual uint32 GetEarliestPurchaseUnixTime(AppId_t nAppID) override { return 0; }
     virtual bool BIsSubscribedFromFreeWeekend() override { return false; }
     virtual int GetDLCCount() override { return 0; }

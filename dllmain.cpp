@@ -357,6 +357,13 @@ BOOL WINAPI DllMain(HMODULE hModule, DWORD dwReason, LPVOID lpReserved)
 		{
 			SteamStub_Init();
 		}
+
+		auto dlcIds = s_PluginLoader.GetDLCIds();
+		if (!dlcIds.empty())
+		{
+			s_AppsStub.SetAllowedDLCIds(dlcIds);
+			UCOLOG("[UCOnline2] Allowed %zu DLC ID(s)", dlcIds.size());
+		}
 	}
 	else if (dwReason == DLL_PROCESS_DETACH)
 	{

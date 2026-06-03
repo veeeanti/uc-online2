@@ -30,6 +30,7 @@ class CDLLLoader
 {
 private:
 	std::vector<HMODULE> m_Modules;
+	std::vector<uint32> m_DLCIds;
 	char m_IniPath[MAX_PATH];
 
 public:
@@ -89,6 +90,34 @@ public:
 		GetPrivateProfileStringA("Settings", "GetStubbedLol", "false", buf, sizeof(buf), m_IniPath);
 
 		return (_stricmp(buf, "true") == 0 || _stricmp(buf, "1") == 0 || _stricmp(buf, "yes") == 0);
+	}
+
+	std::vector<uint32> GetDLCIds()
+	{
+		if (m_IniPath[0] == '\0')
+			return {};
+
+		std::vector<uint32> ids;
+		char buf[1024] = { 0 };
+		GetPrivateProfileStringA("Settings", "DLC", "", buf, sizeof(buf), m_IniPath);
+
+		if (buf[0] == '\0')
+			return {};
+
+		char* token = strtok(buf, ",");
+		while (token != nullptr)
+		{
+			while (*token == ' ' || *token == '\t') token++;
+			if (*token != '\0')
+			{
+				uint32 id = (uint32)strtoul(token, nullptr, 10);
+				if (id != 0)
+					ids.push_back(id);
+			}
+			token = strtok(nullptr, ",");
+		}
+
+		return ids;
 	}
 
 	// This does not need to be set!! It will automatically run as true!!
